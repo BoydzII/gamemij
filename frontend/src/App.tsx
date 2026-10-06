@@ -407,6 +407,7 @@ const fallbackStages = [
 
   {
     "id": "event_child_sick",
+    "imageUrl": "child_sick.jpg",
     "title": "ลูกป่วยหนักกะทันหัน",
     "description": "ลูกของคุณล้มป่วยหนักด้วยโรคร้ายแรง ต้องใช้ค่ารักษาพยาบาลด่วน 300,000 บาท (ประกันสุขภาพไม่ครอบคลุม)",
     "type": "good",
@@ -432,6 +433,7 @@ const fallbackStages = [
   },
   {
     "id": "event_temple_real",
+    "imageUrl": "temple_real.jpg",
     "title": "ร่วมบุญสร้างศาลาวัด",
     "description": "วัดแถวบ้านที่คุณไปทำบุญเป็นประจำ มีโครงการสร้างศาลาปฏิบัติธรรม โดยประกาศเลขบัญชีชื่อวัดอย่างถูกต้องชัดเจน",
     "type": "good",
@@ -457,6 +459,7 @@ const fallbackStages = [
   },
   {
     "id": "event_temple_scam",
+    "imageUrl": "temple_scam.jpg",
     "title": "โครงการบุญมหากุศล (หลอกลวง)",
     "description": "มีเพจเฟซบุ๊กอ้างเป็นพระภิกษุชื่อดัง ทักข้อความมาชวนทำบุญสร้างพระประธาน โดยให้โอนเข้าบัญชีนาย... (ชื่อบุคคลธรรมดา)",
     "type": "scam",
@@ -482,6 +485,7 @@ const fallbackStages = [
   },
   {
     "id": "event_house_repair",
+    "imageUrl": "house_fire.jpg",
     "title": "สายไฟในบ้านเก่าชำรุด",
     "description": "ช่างไฟเตือนว่าสายไฟในบ้านเก่ามากและมีรอยหนูกัด เสี่ยงต่อการลัดวงจร ต้องเสียค่าเดินสายไฟใหม่ทั้งหลัง 50,000 บาท",
     "type": "good",
