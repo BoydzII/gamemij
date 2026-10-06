@@ -1,0 +1,13 @@
+{
+  "name": "วัยเก๋า รู้ทันมิจ!",
+  "short_name": "รู้ทันมิจ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#051c41",
+  "theme_color": "#0b2a5b",
+  "icons": [
+    { "src": "cover.jpg", "sizes": "571x1024", "type": "image/jpeg" }
+  ]
+}

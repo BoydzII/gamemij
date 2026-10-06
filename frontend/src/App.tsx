@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode, Smile } from 'lucide-react';
+import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode, Smile, Maximize, Minimize } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
@@ -536,6 +536,30 @@ function App() {
   const [shake, setShake] = useState(false);
   const [flashRed, setFlashRed] = useState(false);
 
+  // Preload all game images into browser memory immediately
+  useEffect(() => {
+    const imagesToPreload = [
+      'cover.jpg',
+      'child_sick.jpg',
+      'house_fire.jpg',
+      'temple_real.jpg',
+      'temple_scam.jpg',
+      'scam_call.jpg',
+      'event_dividend.jpg',
+      'img_good_default.jpg',
+      'img_scam_default.jpg',
+      'end_balance.jpg',
+      'end_poor_happy.jpg',
+      'end_poor_sad.jpg',
+      'end_rich_happy.jpg',
+      'end_rich_sad.jpg'
+    ];
+    imagesToPreload.forEach(name => {
+      const img = new Image();
+      img.src = `${import.meta.env.BASE_URL}${name}`;
+    });
+  }, []);
+
   useEffect(() => {
     socket.on('updateRoom', (room) => {
       setRoomData(room);
@@ -823,6 +847,70 @@ function App() {
     }
   }, [appState, me]);
 
+  // ---------- Fullscreen ----------
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  const enterFullscreen = () => {
+    const el: any = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req && !document.fullscreenElement) {
+      try { const p = req.call(el); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not supported (e.g. iPhone) */ }
+    }
+  };
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else enterFullscreen();
+  };
+
+  // ---------- Lifeline: ซ่อนข้อความทันทีเมื่อเปลี่ยนด่าน/เปลี่ยนหน้าจอ และรีเซ็ตเมื่อเริ่มเกมใหม่ ----------
+  useEffect(() => { setLifelineMessage(""); }, [stageIndex, appState]);
+  useEffect(() => {
+    if (appState === 'home' || appState === 'lobby') setLifelineUsed(false);
+  }, [appState]);
+
+  // ---------- แถบสถานะ เงิน / ความสุข ----------
+  const renderStatusBar = () => {
+    if (!me) return null;
+    const hap = me.happiness !== undefined ? me.happiness : 50;
+    const hapColor = hap >= 70 ? 'bg-green-500' : hap >= 40 ? 'bg-yellow-400' : 'bg-red-500';
+    const hapEmoji = hap >= 70 ? '😄' : hap >= 40 ? '🙂' : '😟';
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`rounded-xl border-2 p-2 shadow-sm bg-white ${me.money < 0 ? 'border-red-500' : 'border-green-500'}`}>
+          <div className="text-[11px] font-bold text-gray-500 flex items-center gap-1"><Coins size={14} /> เงินคงเหลือ</div>
+          <div className={`text-lg font-extrabold leading-tight ${me.money < 0 ? 'text-red-600' : 'text-green-700'}`}>
+            {me.money < 0 ? '-' : ''}฿{Math.abs(me.money).toLocaleString()}
+          </div>
+          {me.money < 0 && <div className="text-[10px] font-bold text-red-500">⚠️ ติดหนี้อยู่</div>}
+        </div>
+        <div className="rounded-xl border-2 border-pink-400 p-2 shadow-sm bg-white">
+          <div className="text-[11px] font-bold text-gray-500 flex items-center gap-1"><Smile size={14} /> ความสุข</div>
+          <div className="text-lg font-extrabold leading-tight text-pink-600">{hapEmoji} {hap}<span className="text-xs text-gray-400">/100</span></div>
+          <div className="w-full h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
+            <div className={`h-full ${hapColor} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, hap))}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStageProgress = () => {
+    const total = roomData?.stages?.length || 1;
+    const pct = Math.round(((stageIndex + 1) / total) * 100);
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-white bg-[#0b2a5b] rounded-full px-2 py-0.5 whitespace-nowrap">ด่าน {stageIndex + 1}/{total}</span>
+        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  };
+
   const renderCustomForm = () => (
     <div className="mt-8 bg-indigo-50 p-6 rounded-lg border border-indigo-200 text-left">
       <h3 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
@@ -870,22 +958,42 @@ function App() {
   );
 
   if (appState === 'splash') {
+    const handleStart = () => {
+      enterFullscreen();
+      setAppState('loading');
+      setTimeout(() => setAppState('home'), 1200);
+    };
+
     return (
-      <div className="w-full h-screen bg-[#051c41] relative flex flex-col items-center justify-center overflow-hidden cursor-pointer" onClick={() => {
-         setAppState('loading');
-         setTimeout(() => setAppState('home'), 2500);
-      }}>
-         <img src={`${import.meta.env.BASE_URL}cover.jpg`} className="w-full h-full object-cover max-w-md mx-auto shadow-2xl" />
-         <div className="absolute bottom-[10%] w-full text-center animate-pulse opacity-80 pointer-events-none">
-           <span className="bg-yellow-400 text-yellow-900 px-6 py-2 rounded-full font-bold shadow-lg text-lg">แตะเพื่อเข้าเกม</span>
-         </div>
+      <div 
+        className="w-full h-[100dvh] bg-[#051c41] relative flex items-center justify-center overflow-hidden select-none cursor-pointer"
+        onClick={handleStart}
+      >
+        <div className="relative w-full max-w-md h-full max-h-[100dvh] aspect-[571/1024] flex items-center justify-center">
+          <img 
+            src={`${import.meta.env.BASE_URL}cover.jpg`} 
+            alt="วัยเก๋า รู้ทันมิจ" 
+            className="w-full h-full object-contain shadow-2xl" 
+          />
+          {/* ปุ่มเริ่มเล่น ทับตำแหน่งปุ่มสีเหลืองในรูปภาพอย่างพอดี */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStart();
+            }}
+            className="absolute top-[84%] left-[27%] w-[46%] h-[8%] rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl sm:text-3xl tracking-wider transition-all active:scale-95 animate-pulse shadow-md cursor-pointer"
+            style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)' }}
+          >
+            เริ่มเล่น
+          </button>
+        </div>
       </div>
     );
   }
 
   if (appState === 'loading') {
     return (
-      <div className="w-full h-screen bg-[#051c41] flex flex-col items-center justify-center overflow-hidden relative">
+      <div className="w-full h-[100dvh] bg-[#051c41] flex flex-col items-center justify-center overflow-hidden relative">
          <div className="text-white text-3xl font-bold z-10 animate-pulse mb-8 drop-shadow-lg flex flex-col items-center">
             <ShieldAlert size={64} className="text-yellow-400 mb-4" />
             กำลังโหลด...
@@ -895,7 +1003,7 @@ function App() {
              <div key={i} className="money-particle" style={{
                 left: `${Math.random() * 100}%`,
                 animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${1.5 + Math.random() * 2}s`,
+                animationDuration: `${1.2 + Math.random() * 1.5}s`,
                 fontSize: `${2 + Math.random() * 2}rem`
              }}>
                💸
@@ -906,13 +1014,23 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 sm:p-4">
-      <div className={`max-w-md mx-auto bg-white sm:rounded-xl shadow-md overflow-hidden md:max-w-md p-4 sm:p-6 min-h-screen sm:min-h-0 ${shake ? "animate-shake" : ""} ${flashRed ? "flash-red" : ""}`}>
+    <div className="min-h-[100dvh] bg-gradient-to-b from-[#0b2a5b] to-[#051c41] text-gray-800 sm:p-4">
+      <div className={`max-w-md mx-auto bg-slate-50 sm:rounded-2xl shadow-2xl overflow-hidden p-3 sm:p-5 min-h-[100dvh] sm:min-h-0 ${shake ? "animate-shake" : ""} ${flashRed ? "flash-red" : ""}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-center gap-2 mb-4 text-blue-600">
-          <ShieldAlert size={28} />
-          <h1 className="text-2xl font-bold">วัยเก๋า รู้ทันมิจ!</h1>
+        <div className="flex items-center justify-between mb-3 bg-[#0b2a5b] text-white rounded-xl px-3 py-2 shadow">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={22} className="text-yellow-400" />
+            <h1 className="text-lg font-bold">วัยเก๋า รู้ทันมิจ!</h1>
+          </div>
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1 bg-white/15 hover:bg-white/25 border border-white/30 rounded-lg px-2 py-1 text-xs font-bold"
+            aria-label="สลับโหมดเต็มจอ"
+          >
+            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+            {isFullscreen ? 'ออกเต็มจอ' : 'เต็มจอ'}
+          </button>
         </div>
 
         {/* --- Home Screen --- */}
@@ -1089,74 +1207,75 @@ function App() {
         {/* --- Playing Screen --- */}
         {appState === 'playing' && currentStage && (
           <div className="space-y-3">
-            {!isHost && me && (
-              <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg font-bold text-blue-800">
-                <span>{me.name}</span>
-                <div className="flex items-center gap-4"><span className={`flex items-center gap-1 ${me.money < 0 ? 'text-red-600' : 'text-green-700'}`}><Coins size={18}/> ฿{me.money.toLocaleString()}</span><span className="flex items-center gap-1 text-pink-500"><Smile size={18}/> {me.happiness !== undefined ? me.happiness : 50}/100</span></div>
-              </div>
-            )}
-
-            <div className="text-center">
-              <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mb-2">
-                ด่านที่ {stageIndex + 1} / {roomData.stages.length}
-              </span>
-              <h2 className="text-xl md:text-2xl font-bold text-red-600 leading-tight">{currentStage.title}</h2>
-              <p className="mt-2 text-sm md:text-base bg-gray-100 p-3 rounded-lg border-l-4 border-red-500">{currentStage.description}</p>
+            {/* แถบสถานะติดด้านบน */}
+            <div className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur pb-2 space-y-2">
+              {renderStageProgress()}
+              {!isHost && me && renderStatusBar()}
             </div>
 
-            {/* แสดงภาพประกอบ ถ้ามี หรือใช้ภาพอัตโนมัติ */}
-            {(() => {
-               let displayImg = stageImage || currentStage?.imageUrl;
-               if (!displayImg) {
-                  const hasScam = currentStage?.choices.some(c => !c.isGood);
-                  displayImg = hasScam ? 'img_scam_default.jpg' : 'img_good_default.jpg';
-               }
-               const getImageUrl = (url) => {
-                 if (!url) return '';
-                 if (url.startsWith('http') || url.startsWith('data:')) return url;
-                 return `${import.meta.env.BASE_URL}${url.replace('./', '')}`;
-               };
-               return displayImg ? (
-                  <div className="mt-2 text-center bg-white p-1 rounded-lg shadow border">
-                    <p className="text-xs text-gray-500 mb-1 mt-1 font-bold flex items-center justify-center gap-1">
-                      <ShieldAlert size={14} /> ภาพประกอบจำลองสถานการณ์
-                    </p>
-                    <img src={getImageUrl(displayImg)} alt="ภาพประกอบ" className="w-full h-auto max-h-40 md:max-h-56 mx-auto rounded-lg object-contain" />
-                  </div>
-               ) : null;
-            })()}
+            {/* กรอบโจทย์ */}
+            <div className="bg-white rounded-2xl border-2 border-[#0b2a5b] shadow-md overflow-hidden">
+              <div className="bg-[#0b2a5b] text-white px-3 py-2">
+                <h2 className="text-lg font-bold leading-snug">{currentStage.title}</h2>
+              </div>
+
+              {(() => {
+                 let displayImg = stageImage || currentStage?.imageUrl;
+                 if (!displayImg) {
+                    const hasScam = currentStage?.choices.some(c => !c.isGood);
+                    displayImg = hasScam ? 'img_scam_default.jpg' : 'img_good_default.jpg';
+                 }
+                 const getImageUrl = (url) => {
+                   if (!url) return '';
+                   if (url.startsWith('http') || url.startsWith('data:')) return url;
+                   return `${import.meta.env.BASE_URL}${url.replace('./', '')}`;
+                 };
+                 return displayImg ? (
+                    <div className="bg-slate-100 border-b-2 border-slate-200">
+                      <img src={getImageUrl(displayImg)} alt="ภาพประกอบ" className="w-full h-auto max-h-44 md:max-h-56 mx-auto object-contain" />
+                    </div>
+                 ) : null;
+              })()}
+
+              <p className="p-3 text-base leading-relaxed text-gray-800">{currentStage.description}</p>
+            </div>
 
             {(!isHost || isSinglePlayer) && (
-              <div className="space-y-2 mt-3">
-                <h3 className="font-bold text-sm md:text-base">คุณจะทำอย่างไร?</h3>
-                
-                {!hasAnswered && !lifelineUsed && (
-                  <button onClick={() => {
-                     setLifelineUsed(true);
-                     setLifelineMessage(currentStage.type === 'scam' ? '🚨 ลูกหลานบอกว่า: "ระวัง! รูปแบบนี้มิจฉาชีพชอบใช้มาก อย่าโอนเด็ดขาด!"' : '✅ ลูกหลานบอกว่า: "ดูน่าเชื่อถือนะ น่าจะเป็นเรื่องปกตินะคะ"');
-                  }} className="w-full text-left bg-yellow-100 border-2 border-yellow-400 text-yellow-800 p-2 md:p-3 rounded-lg hover:bg-yellow-200 transition text-sm md:text-base font-bold flex items-center gap-2">
-                    💡 โทรปรึกษาลูกหลาน (ใช้ได้ 1 ครั้ง/เกม)
-                  </button>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-[#0b2a5b]">🤔 คุณจะทำอย่างไร?</h3>
+                  {!hasAnswered && !lifelineUsed && (
+                    <button onClick={() => {
+                       setLifelineUsed(true);
+                       setLifelineMessage(currentStage.type === 'scam' ? '🚨 ลูกหลานบอกว่า: "ระวัง! รูปแบบนี้มิจฉาชีพชอบใช้มาก อย่าโอนเด็ดขาด!"' : '✅ ลูกหลานบอกว่า: "ดูน่าเชื่อถือนะ น่าจะเป็นเรื่องปกตินะคะ"');
+                    }} className="bg-yellow-300 border-2 border-yellow-500 text-yellow-900 px-2 py-1 rounded-lg hover:bg-yellow-200 transition text-xs font-bold shadow-sm">
+                      💡 ถามลูกหลาน (1 ครั้ง)
+                    </button>
+                  )}
+                </div>
                 
                 {lifelineMessage && (
-                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r text-sm text-yellow-900 font-bold">
+                  <div className="relative bg-yellow-50 border-2 border-yellow-400 p-3 pr-8 rounded-xl text-sm text-yellow-900 font-bold">
                     {lifelineMessage}
+                    <button onClick={() => setLifelineMessage("")} className="absolute top-1 right-2 text-yellow-700 text-lg leading-none" aria-label="ปิด">×</button>
                   </div>
                 )}
 
                 {hasAnswered ? (
-                  <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-500 font-bold text-sm">
+                  <div className="text-center p-4 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 font-bold text-sm">
                     ส่งคำตอบแล้ว รอผู้เล่นคนอื่น...
                   </div>
                 ) : (
-                  currentStage.choices.map((choice) => (
+                  currentStage.choices.map((choice, idx) => (
                     <button
                       key={choice.id}
                       onClick={() => submitAnswer(choice.id)}
-                      className="w-full text-left bg-white border-2 border-blue-500 p-3 md:p-4 rounded-lg hover:bg-blue-50 transition text-sm md:text-base"
+                      className="w-full flex items-center gap-3 text-left bg-white border-2 border-blue-500 p-3 rounded-xl shadow-sm hover:bg-blue-50 active:scale-[0.98] transition text-base font-medium"
                     >
-                      {choice.text}
+                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center">
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <span>{choice.text}</span>
                     </button>
                   ))
                 )}
@@ -1210,14 +1329,18 @@ function App() {
 
         {/* --- Result Screen --- */}
         {appState === 'result' && stageResult && (
-          <div className="space-y-4 text-center">
-            <h2 className="text-2xl font-bold text-blue-600">เฉลย!</h2>
+          <div className="space-y-3 text-center">
+            {renderStageProgress()}
+            <h2 className="text-2xl font-extrabold text-[#0b2a5b]">📋 เฉลย</h2>
             
-            <div className="bg-gray-50 p-3 rounded-lg space-y-3">
+            <div className="space-y-2">
                {stageResult.choices.map(c => (
-                 <div key={c.id} className={`p-3 rounded border ${c.isGood ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`}>
-                    <p className="font-bold text-sm md:text-base">{c.text}</p>
-                    <p className="text-xs md:text-sm mt-1">{c.result}</p>
+                 <div key={c.id} className={`p-3 rounded-xl border-2 text-left flex gap-2 ${c.isGood ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+                    <span className={`flex-shrink-0 w-7 h-7 rounded-full text-white font-bold flex items-center justify-center ${c.isGood ? 'bg-green-600' : 'bg-red-600'}`}>{c.isGood ? '✓' : '✗'}</span>
+                    <div>
+                      <p className="font-bold text-base">{c.text}</p>
+                      <p className="text-sm mt-1 text-gray-700">{c.result}</p>
+                    </div>
                  </div>
                ))}
             </div>
@@ -1252,23 +1375,12 @@ function App() {
               </div>
             )}
 
-            {me && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-100 p-4 rounded-lg text-lg font-bold text-blue-900 flex flex-col items-center shadow-inner">
-                  <span>ยอดเงินปัจจุบัน</span>
-                  <span className={`text-xl sm:text-2xl flex items-center gap-1 mt-2 ${me.money < 0 ? 'text-red-600' : 'text-green-700'}`}><Coins size={24}/> ฿{me.money.toLocaleString()}</span>
-                </div>
-                <div className="bg-pink-100 p-4 rounded-lg text-lg font-bold text-pink-900 flex flex-col items-center shadow-inner">
-                  <span>ระดับความสุข</span>
-                  <span className="text-xl sm:text-2xl text-pink-600 flex items-center gap-1 mt-2"><Smile size={24}/> {me.happiness !== undefined ? me.happiness : 50}/100</span>
-                </div>
-              </div>
-            )}
+            {me && renderStatusBar()}
 
             {isHost || isSinglePlayer ? (
               <button 
                 onClick={nextStage}
-                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 mt-4"
+                className="w-full bg-gradient-to-b from-yellow-300 to-orange-400 border-2 border-orange-500 text-[#3b1d00] font-extrabold py-3 px-4 rounded-xl shadow-md active:scale-[0.98] text-lg mt-2"
               >
                 {stageIndex + 1 >= roomData.stages.length ? 'ดูสรุปผลคะแนน' : 'ไปด่านถัดไป'}
               </button>
