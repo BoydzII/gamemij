@@ -1,18 +1,86 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { Shield, ShieldAlert, Coins, Users, Trophy } from 'lucide-react';
+import Papa from 'papaparse';
 import './App.css';
 
-// เชื่อมต่อ Backend
+// เชื่อมต่อ Backend (สำหรับการเล่นแบบกลุ่ม)
 const socket = io('http://localhost:3001');
 
+const roles = {
+  pensioner: { id: "pensioner", name: "ข้าราชการบำนาญ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน" },
+  wealthy: { id: "wealthy", name: "เศรษฐีวัยเกษียณ", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม" },
+  salary: { id: "salary", name: "พนักงานใกล้เกษียณ", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน" }
+};
+
+// ด่านสำรองกรณีเล่นออฟไลน์
+const fallbackStages = [
+  {
+    id: "scam_sms",
+    title: "SMS พัสดุตกค้าง",
+    description: "มี SMS แจ้งว่า 'พัสดุของคุณถูกตีกลับ กรุณากดลิงก์เพื่อยืนยันตัวตนและชำระค่าธรรมเนียม 50 บาท'",
+    type: "scam",
+    choices: [
+      { id: "A", text: "กดลิงก์และกรอกข้อมูลบัตรเพื่อจ่าย 50 บาท", result: "พลาดแล้ว! เว็บปลอมดูดข้อมูลบัตร คุณโดนรูดเงินไป", moneyChange: -150000, isGood: false },
+      { id: "B", text: "ลบข้อความทิ้ง และไม่กดลิงก์ใดๆ", result: "ยอดเยี่ยม! คุณรู้ทันมิจฉาชีพ", moneyChange: 0, isGood: true }
+    ],
+    explanation: "ข้อควรระวัง: บริษัทขนส่งจริง จะไม่มีการส่งลิงก์ให้กรอกข้อมูลบัตรเครดิตหรือบัญชีทาง SMS"
+  },
+  {
+    id: "scam_call",
+    title: "สายเรียกเข้า: ตำรวจภูธร",
+    description: "มีคนโทรมาอ้างว่าเป็นตำรวจ บอกว่าบัญชีคุณพัวพันคดีฟอกเงิน ต้องโอนเงินมาตรวจสอบความบริสุทธิ์",
+    type: "scam",
+    choices: [
+      { id: "A", text: "ตกใจกลัว รีบโอนเงินไปให้ตรวจสอบ", result: "โดนหลอก! ตำรวจจริงไม่มีการให้โอนเงินตรวจสอบ", moneyChange: -500000, isGood: false },
+      { id: "B", text: "วางสาย แล้วโทรเบอร์ 1441 (ตำรวจไซเบอร์)", result: "ถูกต้อง! มีสติและตรวจสอบข้อมูลเสมอ", moneyChange: 0, isGood: true }
+    ],
+    explanation: "ข้อควรระวัง: เจ้าหน้าที่รัฐ ตำรวจ หรือศาล ไม่มีนโยบายให้ประชาชนโอนเงินเพื่อ 'ตรวจสอบความบริสุทธิ์'"
+  },
+  {
+    id: "event_dividend",
+    title: "ข่าวดี: ปันผลหุ้น/กองทุน",
+    description: "ถึงรอบเดือน เงินปันผลจากการลงทุนในอดีตของคุณออกแล้ว และโอนเข้าบัญชีโดยอัตโนมัติ",
+    type: "good",
+    choices: [
+      { id: "A", text: "เก็บเข้าบัญชีไว้เป็นทุน", result: "ได้รับเงินปันผลชื่นใจ เงินเก็บงอกเงย", moneyChange: 30000, isGood: true },
+      { id: "B", text: "นำไปซื้อของขวัญให้ตัวเอง", result: "ได้ความสุขแต่เงินเก็บเพิ่มไม่มากนัก", moneyChange: 5000, isGood: true }
+    ],
+    explanation: "ข้อแนะนำ: การลงทุนที่ถูกต้องสร้างผลตอบแทนที่ปลอดภัยให้กับวัยเกษียณ"
+  },
+  {
+    id: "scam_line_invest",
+    title: "กลุ่มไลน์ลงทุน VIP",
+    description: "เพื่อนในไลน์เชิญเข้ากลุ่มลงทุนคริปโต การันตีผลตอบแทน 30% ต่อเดือน",
+    type: "scam",
+    choices: [
+      { id: "A", text: "ลองลงทุนสัก 100,000 บาท น่าจะได้กำไรดี", result: "โดนหลอก! เป็นแชร์ลูกโซ่ ถอนเงินไม่ได้", moneyChange: -100000, isGood: false },
+      { id: "B", text: "กดรายงาน(Report) กลุ่มและบล็อก", result: "ปลอดภัย! การลงทุนที่การันตีผลตอบแทนสูงมักไม่มีจริง", moneyChange: 0, isGood: true }
+    ],
+    explanation: "ข้อควรระวัง: การลงทุนที่ 'การันตีผลตอบแทนสูงในเวลาอันสั้น' คือลักษณะของแชร์ลูกโซ่"
+  },
+  {
+    id: "scam_relative",
+    title: "หลานยืมเงินด่วนทาง Facebook",
+    description: "หลานทักแชทมาบอกว่า 'น้าคะ หนูรถชน ต้องใช้เงินด่วน 30,000 บาท'",
+    type: "scam",
+    choices: [
+      { id: "A", text: "รีบโอนเงินไปบัญชีที่ส่งมาให้ทันที", result: "โดนหลอก! เฟซบุ๊กหลานโดนแฮ็ก", moneyChange: -30000, isGood: false },
+      { id: "B", text: "โทรศัพท์หาเบอร์ส่วนตัวของหลานเพื่อยืนยัน", result: "ถูกต้อง! หลานบอกว่าไม่ได้ทักไป โล่งอกไปที", moneyChange: 0, isGood: true }
+    ],
+    explanation: "ข้อควรระวัง: มิจฉาชีพมักแฮ็ก Facebook แล้วทักไปขอยืมเงิน ให้ 'โทรศัพท์คุยด้วยเสียง' เพื่อยืนยันเสมอ"
+  }
+];
+
 function App() {
-  const [appState, setAppState] = useState('home'); // home, lobby, playing, result, finished
+  const [appState, setAppState] = useState('home');
   const [roomId, setRoomId] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [roleId, setRoleId] = useState('pensioner');
   const [isHost, setIsHost] = useState(false);
   const [isSinglePlayer, setIsSinglePlayer] = useState(false);
+  const [isLocalMode, setIsLocalMode] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState('');
   const [roomData, setRoomData] = useState(null);
   
   const [currentStage, setCurrentStage] = useState(null);
@@ -122,23 +190,66 @@ function App() {
     });
   };
 
-  const startSinglePlayer = () => {
-    if (!playerName) {
-      setPlayerName('ผู้เล่นคนเดียว'); // ตั้งชื่ออัตโนมัติหากไม่พิมพ์
+  const fetchStagesFromSheet = async (url) => {
+    if (!url) {
+      return [...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, 5);
     }
-    const finalName = playerName || 'ผู้เล่นคนเดียว';
-    
-    socket.emit('createRoom', {}, (res) => {
-      const newRoomId = res.roomId;
-      setRoomId(newRoomId);
-      setIsSinglePlayer(true);
-      
-      socket.emit('joinRoom', { roomId: newRoomId, playerName: finalName, roleId }, (joinRes) => {
-        if (joinRes.error) return alert(joinRes.error);
-        setRoomData(joinRes.room);
-        socket.emit('startGame', newRoomId);
+    return new Promise((resolve) => {
+      Papa.parse(url, {
+        download: true,
+        header: true,
+        complete: (results) => {
+          const parsed = results.data.filter(row => row.title).map(row => ({
+            id: row.id || "custom_" + Math.random(),
+            title: row.title,
+            description: row.description,
+            imageUrl: row.imageUrl || null,
+            type: row.type || 'scam',
+            choices: [
+              { id: "A", text: row.ca_text, result: row.ca_result, moneyChange: Number(row.ca_money), isGood: Number(row.ca_money) >= 0 },
+              { id: "B", text: row.cb_text, result: row.cb_result, moneyChange: Number(row.cb_money), isGood: Number(row.cb_money) >= 0 }
+            ],
+            explanation: row.explanation
+          }));
+          resolve(parsed.sort(() => 0.5 - Math.random()).slice(0, 5)); // Shuffle and take 5
+        },
+        error: () => resolve([...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, 5))
       });
     });
+  };
+
+  const startSinglePlayer = async () => {
+    const finalName = playerName || 'ผู้เล่นคนเดียว';
+    setPlayerName(finalName);
+    
+    // โหมดออฟไลน์ล้วน (Local Mode)
+    const stages = await fetchStagesFromSheet(sheetUrl);
+    const role = roles[roleId] || roles.pensioner;
+    
+    const localRoom = {
+      id: 'LOCAL',
+      host: 'LOCAL_ME',
+      players: [{
+        id: 'LOCAL_ME',
+        name: finalName,
+        role: role,
+        money: role.startMoney,
+        isReady: true,
+        history: [],
+        lastSalaryBonus: 0
+      }],
+      state: 'playing',
+      stages: stages,
+      currentStageIndex: 0,
+      responses: {}
+    };
+    
+    setRoomData(localRoom);
+    setCurrentStage(stages[0]);
+    setStageIndex(0);
+    setAppState('playing');
+    setIsSinglePlayer(true);
+    setIsLocalMode(true);
   };
 
   const joinRoom = () => {
@@ -155,16 +266,62 @@ function App() {
   };
 
   const submitAnswer = (choiceId) => {
+    if (isLocalMode) {
+      const room = { ...roomData };
+      const p = room.players[0];
+      const stage = room.stages[room.currentStageIndex];
+      const choice = stage.choices.find(c => c.id === choiceId);
+      
+      let earned = 0;
+      p.lastSalaryBonus = 0;
+      if (choice) {
+        earned = choice.moneyChange;
+        p.money += choice.moneyChange;
+        if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
+           p.money += p.role.income;
+           earned += p.role.income;
+           p.lastSalaryBonus = p.role.income;
+        }
+        if (p.money < 0) p.money = 0;
+        p.history.push({
+          stageIndex: room.currentStageIndex,
+          choiceText: choice.text,
+          resultText: choice.result,
+          moneyChange: earned
+        });
+      }
+      setRoomData(room);
+      setStageResult(stage);
+      setHasAnswered(true);
+      setAppState('result');
+      return;
+    }
     socket.emit('submitAnswer', { roomId, choiceId });
     setHasAnswered(true);
   };
 
   const nextStage = () => {
+    if (isLocalMode) {
+      const room = { ...roomData };
+      room.currentStageIndex++;
+      if (room.currentStageIndex >= room.stages.length) {
+        room.state = 'finished';
+        setAppState('finished');
+      } else {
+        setCurrentStage(room.stages[room.currentStageIndex]);
+        setStageIndex(room.currentStageIndex);
+        setHasAnswered(false);
+        setStageResult(null);
+        setStageImage(null);
+        setAppState('playing');
+      }
+      setRoomData(room);
+      return;
+    }
     socket.emit('nextStage', roomId);
   };
 
-  // ดึงข้อมูลตัวเอง
-  const me = roomData?.players.find(p => p.id === socket.id);
+  const me = isLocalMode ? roomData?.players[0] : roomData?.players.find(p => p.id === socket.id);
 
   const renderCustomForm = () => (
     <div className="mt-8 bg-indigo-50 p-6 rounded-lg border border-indigo-200 text-left">
@@ -254,6 +411,20 @@ function App() {
                   <option value="wealthy">เศรษฐีวัยเกษียณ (เงินก้อนใหญ่มาก)</option>
                   <option value="salary">พนักงานใกล้เกษียณ (เงินเดือนสูง)</option>
                 </select>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-blue-200 mt-4 mb-2">
+                <label className="font-bold block text-sm text-indigo-600 flex items-center gap-1">
+                  📊 ลิงก์ Google Sheet CSV (สร้างโจทย์เอง):
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="วางลิงก์ CSV (ปล่อยว่างเพื่อใช้โจทย์เริ่มต้น)" 
+                  className="w-full p-3 border rounded-lg border-indigo-300 bg-indigo-50 text-sm"
+                  value={sheetUrl}
+                  onChange={(e) => setSheetUrl(e.target.value)}
+                />
+                <p className="text-xs text-gray-500">แอดมินสามารถนำรูปฝากเว็บแล้วเอาลิงก์ใส่ในชีตได้เลย</p>
               </div>
 
               <button 
