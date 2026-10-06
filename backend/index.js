@@ -237,6 +237,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('addCustomStage', ({ roomId, stage }) => {
+    const room = rooms[roomId];
+    if (room && room.host === socket.id) {
+      if (room.currentStageIndex >= 0) {
+        // แทรกลงเป็นด่านถัดไปเลย
+        room.stages.splice(room.currentStageIndex + 1, 0, stage);
+      } else {
+        // ถ้ายังอยู่หน้าล็อบบี้ ก็ต่อท้ายไปเลย
+        room.stages.push(stage);
+      }
+      io.to(roomId).emit('updateRoom', room);
+    }
+  });
+
   socket.on('nextStage', (roomId) => {
     const room = rooms[roomId];
     if (room && room.host === socket.id) {

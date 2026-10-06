@@ -20,6 +20,7 @@ function App() {
   const [hasAnswered, setHasAnswered] = useState(false);
   const [stageResult, setStageResult] = useState(null);
   const [stageImage, setStageImage] = useState(null);
+  const [showCustomForm, setShowCustomForm] = useState(false);
 
   useEffect(() => {
     socket.on('updateRoom', (room) => {
@@ -64,6 +65,54 @@ function App() {
       socket.off('showImage');
     };
   }, []);
+
+  const submitCustomStage = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    
+    let imageUrl = null;
+    const file = fd.get('image');
+    if (file && file.size > 0) {
+       const imgData = new FormData();
+       imgData.append('image', file);
+       try {
+         const res = await fetch('http://localhost:3001/upload', { method: 'POST', body: imgData });
+         const data = await res.json();
+         imageUrl = data.url;
+       } catch (err) {
+         console.error(err);
+       }
+    }
+
+    const stage = {
+      id: "custom_" + Date.now(),
+      title: fd.get('title'),
+      description: fd.get('description'),
+      imageUrl: imageUrl,
+      type: "custom",
+      choices: [
+        {
+          id: "A",
+          text: fd.get('ca_text'),
+          result: fd.get('ca_result'),
+          moneyChange: Number(fd.get('ca_money')),
+          isGood: Number(fd.get('ca_money')) >= 0
+        },
+        {
+          id: "B",
+          text: fd.get('cb_text'),
+          result: fd.get('cb_result'),
+          moneyChange: Number(fd.get('cb_money')),
+          isGood: Number(fd.get('cb_money')) >= 0
+        }
+      ],
+      explanation: fd.get('explanation')
+    };
+
+    socket.emit('addCustomStage', { roomId, stage });
+    setShowCustomForm(false);
+    alert('เพิ่มด่านใหม่สำเร็จ! ด่านนี้จะขึ้นเป็นด่านถัดไปเมื่อกดไปต่อ');
+  };
 
   const createRoom = () => {
     socket.emit('createRoom', {}, (res) => {
@@ -117,8 +166,54 @@ function App() {
   // ดึงข้อมูลตัวเอง
   const me = roomData?.players.find(p => p.id === socket.id);
 
+  const renderCustomForm = () => (
+    <div className="mt-8 bg-indigo-50 p-6 rounded-lg border border-indigo-200 text-left">
+      <h3 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
+        ➕ สร้างด่านพิเศษ
+      </h3>
+      <form onSubmit={submitCustomStage} className="space-y-4">
+        <div>
+          <label className="block font-bold mb-1 text-sm">หัวข้อด่าน:</label>
+          <input name="title" required className="w-full p-2 border rounded" placeholder="เช่น SMS หลอกลวงแบบใหม่" />
+        </div>
+        <div>
+          <label className="block font-bold mb-1 text-sm">รายละเอียดสถานการณ์:</label>
+          <textarea name="description" required className="w-full p-2 border rounded" placeholder="เล่าสถานการณ์ที่เกิดขึ้น..." />
+        </div>
+        <div>
+          <label className="block font-bold mb-1 text-sm">อัปโหลดรูปภาพโจทย์ (ถ้ามี):</label>
+          <input name="image" type="file" accept="image/*" className="w-full p-2 bg-white border rounded text-sm" />
+        </div>
+        
+        <div className="bg-red-50 p-3 rounded border border-red-200">
+          <h4 className="font-bold text-red-700 mb-2 text-sm">ตัวเลือก A (เช่น ตัดสินใจผิด)</h4>
+          <input name="ca_text" required className="w-full p-2 border rounded mb-2 text-sm" placeholder="ข้อความตัวเลือก A" />
+          <input name="ca_result" required className="w-full p-2 border rounded mb-2 text-sm" placeholder="เฉลยเมื่อเลือก A" />
+          <input name="ca_money" type="number" required className="w-full p-2 border rounded text-sm" placeholder="เงินที่ได้/เสีย (เช่น -50000)" />
+        </div>
+
+        <div className="bg-green-50 p-3 rounded border border-green-200">
+          <h4 className="font-bold text-green-700 mb-2 text-sm">ตัวเลือก B (เช่น ตัดสินใจถูก)</h4>
+          <input name="cb_text" required className="w-full p-2 border rounded mb-2 text-sm" placeholder="ข้อความตัวเลือก B" />
+          <input name="cb_result" required className="w-full p-2 border rounded mb-2 text-sm" placeholder="เฉลยเมื่อเลือก B" />
+          <input name="cb_money" type="number" required className="w-full p-2 border rounded text-sm" placeholder="เงินที่ได้/เสีย (เช่น 0)" />
+        </div>
+
+        <div>
+          <label className="block font-bold mb-1 text-sm">คำชี้แจง / ความรู้ป้องกันภัย:</label>
+          <textarea name="explanation" required className="w-full p-2 border rounded text-sm" placeholder="สอนวิธีสังเกตหรือป้องกันตัว..." />
+        </div>
+
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setShowCustomForm(false)} className="flex-1 bg-gray-300 p-3 rounded font-bold text-gray-800">ยกเลิก</button>
+          <button type="submit" className="flex-1 bg-indigo-600 text-white p-3 rounded font-bold">บันทึกด่านใหม่</button>
+        </div>
+      </form>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 p-4 font-sans">
+    <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
         
         {/* Header */}
@@ -223,6 +318,14 @@ function App() {
             ) : (
               <p className="text-gray-500 animate-pulse">รอโฮสต์เริ่มเกม...</p>
             )}
+
+            {/* เพิ่มด่านสำหรับโฮสต์ในล็อบบี้ */}
+            {(isHost || isSinglePlayer) && !showCustomForm && (
+              <button onClick={() => setShowCustomForm(true)} className="w-full mt-4 bg-indigo-100 text-indigo-700 font-bold py-3 px-4 rounded-lg border border-indigo-300 hover:bg-indigo-200">
+                ➕ แอดโจทย์/ด่านใหม่ด้วยตัวเอง
+              </button>
+            )}
+            {(isHost || isSinglePlayer) && showCustomForm && renderCustomForm()}
           </div>
         )}
 
@@ -365,13 +468,21 @@ function App() {
             {isHost || isSinglePlayer ? (
               <button 
                 onClick={nextStage}
-                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 mt-4"
               >
                 {stageIndex + 1 >= roomData.stages.length ? 'ดูสรุปผลคะแนน' : 'ไปด่านถัดไป'}
               </button>
             ) : (
-              <p className="text-gray-500 animate-pulse">รอโฮสต์กดไปด่านถัดไป...</p>
+              <p className="text-gray-500 animate-pulse mt-4">รอโฮสต์กดไปด่านถัดไป...</p>
             )}
+
+            {/* เพิ่มด่านสำหรับโฮสต์ในหน้าเฉลย */}
+            {(isHost || isSinglePlayer) && !showCustomForm && (
+              <button onClick={() => setShowCustomForm(true)} className="w-full mt-4 bg-indigo-100 text-indigo-700 font-bold py-3 px-4 rounded-lg border border-indigo-300 hover:bg-indigo-200">
+                ➕ แอดโจทย์/ด่านใหม่ เพื่อเล่นเป็นด่านถัดไป
+              </button>
+            )}
+            {(isHost || isSinglePlayer) && showCustomForm && renderCustomForm()}
           </div>
         )}
 
