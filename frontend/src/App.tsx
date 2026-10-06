@@ -975,13 +975,13 @@ function App() {
             alt="วัยเก๋า รู้ทันมิจ" 
             className="w-full h-full object-contain shadow-2xl" 
           />
-          {/* ปุ่มเริ่มเล่น ทับตำแหน่งปุ่มสีเหลืองในรูปภาพอย่างพอดี */}
+          {/* ปุ่มเริ่มเล่น อยู่กึ่งกลางกล่องสีเหลืองพอดี */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleStart();
             }}
-            className="absolute top-[84%] left-[27%] w-[46%] h-[8%] rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl sm:text-3xl tracking-wider transition-all active:scale-95 animate-pulse shadow-md cursor-pointer"
+            className="absolute top-[88.2%] left-[28%] w-[44%] h-[7%] flex items-center justify-center text-white font-extrabold text-2xl sm:text-3xl tracking-wider transition-all active:scale-95 animate-pulse cursor-pointer select-none"
             style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7)' }}
           >
             เริ่มเล่น
