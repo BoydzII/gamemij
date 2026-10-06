@@ -585,6 +585,7 @@ function App() {
   const [lifelineMessage, setLifelineMessage] = useState("");
   const [shake, setShake] = useState(false);
   const [flashRed, setFlashRed] = useState(false);
+  const [floatingMoney, setFloatingMoney] = useState(null);
 
   // Preload all game images into browser memory immediately
   useEffect(() => {
@@ -786,10 +787,31 @@ function App() {
   };
 
   const submitAnswer = (choiceId) => {
+    if (hasAnswered) return;
     const stage = currentStage;
-    const choice = stage.choices.find(c => c.id === choiceId);
+    const choice = stage?.choices.find(c => c.id === choiceId);
+    if (!choice) return;
+
+    // เอฟเฟกต์ตัวเลขเงินลอยกลางจอ ขยายขึ้นแล้วค่อยๆ หายไป
+    const amt = choice.moneyChange || 0;
+    let text = "";
+    let colorClass = "";
+    if (amt > 0) {
+      text = `+฿${amt.toLocaleString()}`;
+      colorClass = "text-emerald-400";
+    } else if (amt < 0) {
+      text = `-฿${Math.abs(amt).toLocaleString()}`;
+      colorClass = "text-rose-500";
+    } else {
+      text = "+0";
+      colorClass = "text-amber-300";
+    }
+    setFloatingMoney({ text, colorClass, key: Date.now() });
+    setTimeout(() => {
+      setFloatingMoney(null);
+    }, 1500);
     
-    if (stage.type === 'scam' && choice && !choice.isGood) {
+    if (stage.type === 'scam' && !choice.isGood) {
         setShake(true); setFlashRed(true);
         setTimeout(() => { setShake(false); setFlashRed(false); }, 500);
     }
@@ -866,7 +888,9 @@ function App() {
       setRoomData(room);
       setStageResult(stage);
       setHasAnswered(true);
-      setAppState('result');
+      setTimeout(() => {
+        setAppState('result');
+      }, 400);
       return;
     }
     socket.emit('submitAnswer', { roomId, choiceId });
@@ -874,6 +898,7 @@ function App() {
   };
 
   const nextStage = () => {
+    setFloatingMoney(null);
     if (isLocalMode) {
       const room = { ...roomData };
       room.currentStageIndex++;
@@ -1080,7 +1105,21 @@ function App() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-[#0b2a5b] to-[#051c41] text-gray-800 sm:p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-[#0b2a5b] to-[#051c41] text-gray-800 sm:p-4 relative">
+      {/* ตัวเลขเงินลอยกลางจอเมื่อเลือกคำตอบ (Floating Money Indicator) */}
+      {floatingMoney && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none px-4">
+          <div 
+            key={floatingMoney.key}
+            className={`animate-float-money font-black text-6xl sm:text-7xl md:text-8xl tracking-wider select-none text-center ${floatingMoney.colorClass}`}
+            style={{
+              textShadow: '0 4px 16px rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.9), -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000'
+            }}
+          >
+            {floatingMoney.text}
+          </div>
+        </div>
+      )}
       <div className={`max-w-md mx-auto bg-slate-50 sm:rounded-2xl shadow-2xl overflow-hidden p-3 sm:p-5 min-h-[100dvh] sm:min-h-0 ${shake ? "animate-shake" : ""} ${flashRed ? "flash-red" : ""}`}>
         
         {/* Header */}
