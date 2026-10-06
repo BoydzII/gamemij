@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode } from 'lucide-react';
+import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode, Smile } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Papa from 'papaparse';
 import imgWealthy from './assets/role_wealthy.png';
@@ -352,6 +352,57 @@ const fallbackStages = [
       }
     ],
     "explanation": "ข้อแนะนำ: การทำธุรกิจกับเพื่อน หรือให้เพื่อนยืมเงินก้อนใหญ่ในวัยเกษียณ มีความเสี่ยงสูงที่จะเสียทั้งเงินและเพื่อน"
+  },
+
+  {
+    "id": "event_gift_grandchild",
+    "title": "ของขวัญวันเกิดหลาน",
+    "description": "หลานรักบ่นว่าอยากได้แท็บเล็ตเครื่องใหม่ไว้เรียนและเล่นเกม ราคา 15,000 บาท",
+    "type": "good",
+    "choices": [
+      {
+        "id": "A",
+        "text": "ซื้อให้เป็นของขวัญเซอร์ไพรส์",
+        "result": "หลานดีใจมากเข้ามากอดคุณ! เสียเงินแต่ได้ความสุขเต็มเปี่ยม",
+        "moneyChange": -15000,
+        "happinessChange": 30,
+        "isGood": true
+      },
+      {
+        "id": "B",
+        "text": "ไม่ซื้อให้ ให้เงินใส่ซอง 1,000 บาทแทน",
+        "result": "ประหยัดเงินได้เยอะ หลานขอบคุณแต่แอบผิดหวังเล็กน้อย",
+        "moneyChange": -1000,
+        "happinessChange": -5,
+        "isGood": true
+      }
+    ],
+    "explanation": "ข้อแนะนำ: การบริหารเงินวัยเกษียณ ควรมีงบสำหรับความสุขของครอบครัวด้วย ไม่จำเป็นต้องเก็บเงินไว้ทั้งหมดจนเครียดเกินไป"
+  },
+  {
+    "id": "event_holiday_trip",
+    "title": "ทริปเที่ยวพักผ่อนวัยเก๋า",
+    "description": "กลุ่มเพื่อนเก่าชวนไปทัวร์ไหว้พระทำบุญและแช่ออนเซ็นที่ญี่ปุ่น 5 วัน 4 คืน ราคา 40,000 บาท",
+    "type": "good",
+    "choices": [
+      {
+        "id": "A",
+        "text": "ไปสิ! ซื้อความสุขให้ตัวเองบ้าง",
+        "result": "ทริปนี้สนุกมาก ได้รูปสวยๆ และรอยยิ้มกลับมาเต็มกระเป๋า",
+        "moneyChange": -40000,
+        "happinessChange": 40,
+        "isGood": true
+      },
+      {
+        "id": "B",
+        "text": "แพงไป ขออยู่บ้านดูทีวีดีกว่า",
+        "result": "เงินอยู่ครบ แต่แอบเหงาที่เห็นเพื่อนๆ โพสต์รูปไปเที่ยวกัน",
+        "moneyChange": 0,
+        "happinessChange": -10,
+        "isGood": true
+      }
+    ],
+    "explanation": "ข้อแนะนำ: การให้รางวัลตัวเองด้วยการท่องเที่ยว ช่วยลดความเครียดและป้องกันโรคซึมเศร้าในผู้สูงอายุได้ดี"
   }
 
 ];
@@ -557,21 +608,41 @@ function App() {
       const choice = stage.choices.find(c => c.id === choiceId);
       
       let earned = 0;
+      let hapChange = 0;
       p.lastSalaryBonus = 0;
+      
       if (choice) {
         earned = choice.moneyChange;
+        
+        if (choice.happinessChange !== undefined) {
+           hapChange = choice.happinessChange;
+        } else {
+           if (choice.isGood && choice.moneyChange > 0) hapChange = 15;
+           else if (!choice.isGood && choice.moneyChange < 0) hapChange = -20;
+           else if (choice.isGood && choice.moneyChange === 0) hapChange = 5;
+           else hapChange = 0;
+        }
+
         p.money += choice.moneyChange;
+        
+        if (p.happiness === undefined) p.happiness = 50;
+        p.happiness += hapChange;
+        if (p.happiness > 100) p.happiness = 100;
+        if (p.happiness < 0) p.happiness = 0;
+
         if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
            p.money += p.role.income;
            earned += p.role.income;
            p.lastSalaryBonus = p.role.income;
         }
         if (p.money < 0) p.money = 0;
+        
         p.history.push({
           stageIndex: room.currentStageIndex,
           choiceText: choice.text,
           resultText: choice.result,
-          moneyChange: earned
+          moneyChange: earned,
+          happinessChange: hapChange
         });
       }
       setRoomData(room);
@@ -808,7 +879,7 @@ function App() {
             {!isHost && me && (
               <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg font-bold text-blue-800">
                 <span>{me.name}</span>
-                <span className="flex items-center gap-1"><Coins size={18}/> ฿{me.money.toLocaleString()}</span>
+                <div className="flex items-center gap-4"><span className="flex items-center gap-1 text-green-700"><Coins size={18}/> ฿{me.money.toLocaleString()}</span><span className="flex items-center gap-1 text-pink-500"><Smile size={18}/> {me.happiness !== undefined ? me.happiness : 50}/100</span></div>
               </div>
             )}
 
@@ -932,9 +1003,15 @@ function App() {
             )}
 
             {me && (
-              <div className="bg-blue-100 p-4 rounded-lg text-xl font-bold text-blue-900 flex justify-between items-center shadow-inner">
-                <span>ยอดเงินปัจจุบัน:</span>
-                <span>฿{me.money.toLocaleString()}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-100 p-4 rounded-lg text-lg font-bold text-blue-900 flex flex-col items-center shadow-inner">
+                  <span>ยอดเงินปัจจุบัน</span>
+                  <span className="text-xl sm:text-2xl text-green-700 flex items-center gap-1 mt-2"><Coins size={24}/> ฿{me.money.toLocaleString()}</span>
+                </div>
+                <div className="bg-pink-100 p-4 rounded-lg text-lg font-bold text-pink-900 flex flex-col items-center shadow-inner">
+                  <span>ระดับความสุข</span>
+                  <span className="text-xl sm:text-2xl text-pink-600 flex items-center gap-1 mt-2"><Smile size={24}/> {me.happiness !== undefined ? me.happiness : 50}/100</span>
+                </div>
               </div>
             )}
 
@@ -966,19 +1043,32 @@ function App() {
             <h2 className="text-3xl font-bold text-gray-800">จบเกม!</h2>
             
             <div className="bg-yellow-50 p-4 rounded-lg">
-              <h3 className="font-bold text-lg mb-4">ตารางคะแนน (เศรษฐีผู้รู้ทันมิจฉาชีพ)</h3>
-              <ul className="space-y-3">
-                {[...(roomData?.players || [])].sort((a,b) => b.money - a.money).map((p, i) => (
-                  <li key={i} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-yellow-200">
-                    <span className="font-bold flex items-center gap-2">
-                      {i === 0 && '🥇'} {i === 1 && '🥈'} {i === 2 && '🥉'}
-                      {p.name}
-                    </span>
-                    <span className={`font-bold ${p.money > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      ฿{p.money.toLocaleString()}
-                    </span>
-                  </li>
-                ))}
+              <h3 className="font-bold text-lg mb-4">ตารางคะแนนและบทสรุปชีวิต</h3>
+              <ul className="space-y-4">
+                {[...(roomData?.players || [])].sort((a,b) => b.money - a.money).map((p, i) => {
+                  const hap = p.happiness !== undefined ? p.happiness : 50;
+                  let ending = { title: '⚖️ ใช้ชีวิตได้สมดุล', color: 'text-green-600' };
+                  if (p.money >= 1000000 && hap >= 70) ending = { title: '🌟 เศรษฐีผู้เปี่ยมสุข', color: 'text-yellow-600' };
+                  else if (p.money >= 1000000 && hap < 50) ending = { title: '💼 รวยแต่เครียด', color: 'text-blue-600' };
+                  else if (p.money <= 200000 && hap >= 70) ending = { title: '💖 เงินน้อยแต่สุขใจ', color: 'text-pink-600' };
+                  else if (p.money <= 200000 && hap < 50) ending = { title: '📉 ล้มละลายและอมทุกข์', color: 'text-red-600' };
+
+                  return (
+                    <li key={i} className="flex flex-col bg-white p-3 rounded-lg shadow-sm border border-yellow-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold flex items-center gap-2">
+                          {i === 0 && '🥇'} {i === 1 && '🥈'} {i === 2 && '🥉'}
+                          {p.name}
+                        </span>
+                        <span className={`font-bold ${ending.color}`}>{ending.title}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1 text-green-700"><Coins size={16}/> ฿{p.money.toLocaleString()}</span>
+                        <span className="flex items-center gap-1 text-pink-500"><Smile size={16}/> สุข {hap}/100</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 

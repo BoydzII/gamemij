@@ -407,6 +407,57 @@ const allStages = [
       }
     ],
     "explanation": "ข้อแนะนำ: การทำธุรกิจกับเพื่อน หรือให้เพื่อนยืมเงินก้อนใหญ่ในวัยเกษียณ มีความเสี่ยงสูงที่จะเสียทั้งเงินและเพื่อน"
+  },
+
+  {
+    "id": "event_gift_grandchild",
+    "title": "ของขวัญวันเกิดหลาน",
+    "description": "หลานรักบ่นว่าอยากได้แท็บเล็ตเครื่องใหม่ไว้เรียนและเล่นเกม ราคา 15,000 บาท",
+    "type": "good",
+    "choices": [
+      {
+        "id": "A",
+        "text": "ซื้อให้เป็นของขวัญเซอร์ไพรส์",
+        "result": "หลานดีใจมากเข้ามากอดคุณ! เสียเงินแต่ได้ความสุขเต็มเปี่ยม",
+        "moneyChange": -15000,
+        "happinessChange": 30,
+        "isGood": true
+      },
+      {
+        "id": "B",
+        "text": "ไม่ซื้อให้ ให้เงินใส่ซอง 1,000 บาทแทน",
+        "result": "ประหยัดเงินได้เยอะ หลานขอบคุณแต่แอบผิดหวังเล็กน้อย",
+        "moneyChange": -1000,
+        "happinessChange": -5,
+        "isGood": true
+      }
+    ],
+    "explanation": "ข้อแนะนำ: การบริหารเงินวัยเกษียณ ควรมีงบสำหรับความสุขของครอบครัวด้วย ไม่จำเป็นต้องเก็บเงินไว้ทั้งหมดจนเครียดเกินไป"
+  },
+  {
+    "id": "event_holiday_trip",
+    "title": "ทริปเที่ยวพักผ่อนวัยเก๋า",
+    "description": "กลุ่มเพื่อนเก่าชวนไปทัวร์ไหว้พระทำบุญและแช่ออนเซ็นที่ญี่ปุ่น 5 วัน 4 คืน ราคา 40,000 บาท",
+    "type": "good",
+    "choices": [
+      {
+        "id": "A",
+        "text": "ไปสิ! ซื้อความสุขให้ตัวเองบ้าง",
+        "result": "ทริปนี้สนุกมาก ได้รูปสวยๆ และรอยยิ้มกลับมาเต็มกระเป๋า",
+        "moneyChange": -40000,
+        "happinessChange": 40,
+        "isGood": true
+      },
+      {
+        "id": "B",
+        "text": "แพงไป ขออยู่บ้านดูทีวีดีกว่า",
+        "result": "เงินอยู่ครบ แต่แอบเหงาที่เห็นเพื่อนๆ โพสต์รูปไปเที่ยวกัน",
+        "moneyChange": 0,
+        "happinessChange": -10,
+        "isGood": true
+      }
+    ],
+    "explanation": "ข้อแนะนำ: การให้รางวัลตัวเองด้วยการท่องเที่ยว ช่วยลดความเครียดและป้องกันโรคซึมเศร้าในผู้สูงอายุได้ดี"
   }
 
 ];
@@ -481,27 +532,43 @@ io.on('connection', (socket) => {
       room.players.forEach(p => {
         const pChoiceId = room.responses[p.id];
         const choice = currentStage.choices.find(c => c.id === pChoiceId);
+        
         let earned = 0;
-        p.lastSalaryBonus = 0; // Reset every stage
-
+        let hapChange = 0;
+        p.lastSalaryBonus = 0;
+        
         if (choice) {
           earned = choice.moneyChange;
+          
+          if (choice.happinessChange !== undefined) {
+             hapChange = choice.happinessChange;
+          } else {
+             if (choice.isGood && choice.moneyChange > 0) hapChange = 15;
+             else if (!choice.isGood && choice.moneyChange < 0) hapChange = -20;
+             else if (choice.isGood && choice.moneyChange === 0) hapChange = 5;
+             else hapChange = 0;
+          }
+
           p.money += choice.moneyChange;
           
-          // ระบบเงินเดือน/ปันผลออก ทุกๆ 2 ด่าน
+          if (p.happiness === undefined) p.happiness = 50;
+          p.happiness += hapChange;
+          if (p.happiness > 100) p.happiness = 100;
+          if (p.happiness < 0) p.happiness = 0;
+
           if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
              p.money += p.role.income;
              earned += p.role.income;
              p.lastSalaryBonus = p.role.income;
           }
-
           if (p.money < 0) p.money = 0;
-
+          
           p.history.push({
             stageIndex: room.currentStageIndex,
             choiceText: choice.text,
             resultText: choice.result,
-            moneyChange: earned
+            moneyChange: earned,
+            happinessChange: hapChange
           });
         }
       });
