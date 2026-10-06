@@ -21,3 +21,14 @@ body {
   box-shadow: inset 0 0 50px rgba(255, 0, 0, 0.5) !important;  
   transition: box-shadow 0.2s ease-out;  
 } 
+
+@keyframes fly-money {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+}
+.money-particle {
+  position: absolute;
+  bottom: -50px;
+  animation: fly-money linear infinite;
+  z-index: 0;
+}
