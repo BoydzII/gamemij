@@ -3,16 +3,18 @@ import { io } from 'socket.io-client';
 import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Papa from 'papaparse';
-import rolesImage from './assets/roles.png';
+import imgWealthy from './assets/role_wealthy.png';
+import imgPensioner from './assets/role_pensioner.png';
+import imgSalary from './assets/role_salary.png';
 import './App.css';
 
 // เชื่อมต่อ Backend (สำหรับการเล่นแบบกลุ่ม)
 const socket = io('http://localhost:3001');
 
 const roles = {
-  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม", bgPos: "0% 0%" },
-  pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน", bgPos: "50% 0%" },
-  salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน", bgPos: "100% 0%" }
+  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม", img: imgWealthy },
+  pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน", img: imgPensioner },
+  salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน", img: imgSalary }
 };
 
 // ด่านสำรองกรณีเล่นออฟไลน์
@@ -411,14 +413,9 @@ function App() {
                       onClick={() => setRoleId(role.id)}
                       className={`cursor-pointer border-4 rounded-xl overflow-hidden text-center transition ${roleId === role.id ? 'border-blue-500 shadow-md scale-105 bg-white' : 'border-transparent hover:border-gray-300 bg-gray-50 opacity-80'}`}
                     >
-                      <div 
-                        className="w-full h-24 sm:h-32 bg-no-repeat"
-                        style={{
-                           backgroundImage: `url(${rolesImage})`,
-                           backgroundSize: '300% 100%',
-                           backgroundPosition: role.bgPos
-                        }}
-                      ></div>
+                      <div className="w-full h-24 sm:h-32 bg-blue-50 flex items-center justify-center">
+                        <img src={role.img} alt={role.name} className="w-full h-full object-contain p-1" />
+                      </div>
                       <div className={`text-xs font-bold py-1 ${roleId === role.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
                         {role.name}
                       </div>
