@@ -1026,12 +1026,12 @@ function App() {
             </div>
 
             {/* แสดงภาพประกอบ ถ้ามี */}
-            {stageImage && (
+            {(currentStage?.imageUrl || stageImage) && (
               <div className="mt-4 text-center bg-white p-2 rounded-lg shadow border">
                 <p className="text-sm text-gray-500 mb-2 font-bold flex items-center justify-center gap-1">
                   <ShieldAlert size={16} /> ภาพประกอบจำลองสถานการณ์
                 </p>
-                <img src={stageImage} alt="ภาพประกอบ" className="max-h-64 mx-auto rounded object-contain" />
+                <img src={currentStage?.imageUrl || stageImage} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
               </div>
             )}
 
