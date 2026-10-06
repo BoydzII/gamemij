@@ -831,13 +831,13 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
+    <div className="min-h-screen bg-gray-100 text-gray-800 sm:p-4">
+      <div className="max-w-md mx-auto bg-white sm:rounded-xl shadow-md overflow-hidden md:max-w-md p-4 sm:p-6 min-h-screen sm:min-h-0">
         
         {/* Header */}
-        <div className="flex items-center justify-center gap-2 mb-8 text-blue-600">
-          <ShieldAlert size={32} />
-          <h1 className="text-3xl font-bold">วัยเก๋า รู้ทันมิจ!</h1>
+        <div className="flex items-center justify-center gap-2 mb-4 text-blue-600">
+          <ShieldAlert size={28} />
+          <h1 className="text-2xl font-bold">วัยเก๋า รู้ทันมิจ!</h1>
         </div>
 
         {/* --- Home Screen --- */}
@@ -1013,7 +1013,7 @@ function App() {
 
         {/* --- Playing Screen --- */}
         {appState === 'playing' && currentStage && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {!isHost && me && (
               <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg font-bold text-blue-800">
                 <span>{me.name}</span>
@@ -1025,8 +1025,8 @@ function App() {
               <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mb-2">
                 ด่านที่ {stageIndex + 1} / {roomData.stages.length}
               </span>
-              <h2 className="text-2xl font-bold text-red-600">{currentStage.title}</h2>
-              <p className="mt-4 text-lg bg-gray-100 p-4 rounded-lg border-l-4 border-red-500">{currentStage.description}</p>
+              <h2 className="text-xl md:text-2xl font-bold text-red-600 leading-tight">{currentStage.title}</h2>
+              <p className="mt-2 text-sm md:text-base bg-gray-100 p-3 rounded-lg border-l-4 border-red-500">{currentStage.description}</p>
             </div>
 
             {/* แสดงภาพประกอบ ถ้ามี หรือใช้ภาพอัตโนมัติ */}
@@ -1042,20 +1042,20 @@ function App() {
                  return `${import.meta.env.BASE_URL}${url.replace('./', '')}`;
                };
                return displayImg ? (
-                  <div className="mt-4 text-center bg-white p-2 rounded-lg shadow border">
-                    <p className="text-sm text-gray-500 mb-2 font-bold flex items-center justify-center gap-1">
-                      <ShieldAlert size={16} /> ภาพประกอบจำลองสถานการณ์
+                  <div className="mt-2 text-center bg-white p-1 rounded-lg shadow border">
+                    <p className="text-xs text-gray-500 mb-1 mt-1 font-bold flex items-center justify-center gap-1">
+                      <ShieldAlert size={14} /> ภาพประกอบจำลองสถานการณ์
                     </p>
-                    <img src={getImageUrl(displayImg)} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
+                    <img src={getImageUrl(displayImg)} alt="ภาพประกอบ" className="w-full h-auto max-h-40 md:max-h-56 mx-auto rounded-lg object-contain" />
                   </div>
                ) : null;
             })()}
 
             {(!isHost || isSinglePlayer) && (
-              <div className="space-y-3 mt-6">
-                <h3 className="font-bold">คุณจะทำอย่างไร?</h3>
+              <div className="space-y-2 mt-3">
+                <h3 className="font-bold text-sm md:text-base">คุณจะทำอย่างไร?</h3>
                 {hasAnswered ? (
-                  <div className="text-center p-6 bg-gray-100 rounded-lg text-gray-500 font-bold">
+                  <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-500 font-bold text-sm">
                     ส่งคำตอบแล้ว รอผู้เล่นคนอื่น...
                   </div>
                 ) : (
@@ -1063,7 +1063,7 @@ function App() {
                     <button
                       key={choice.id}
                       onClick={() => submitAnswer(choice.id)}
-                      className="w-full text-left bg-white border-2 border-blue-500 p-4 rounded-lg hover:bg-blue-50 transition"
+                      className="w-full text-left bg-white border-2 border-blue-500 p-3 md:p-4 rounded-lg hover:bg-blue-50 transition text-sm md:text-base"
                     >
                       {choice.text}
                     </button>
@@ -1119,14 +1119,14 @@ function App() {
 
         {/* --- Result Screen --- */}
         {appState === 'result' && stageResult && (
-          <div className="space-y-6 text-center">
-            <h2 className="text-3xl font-bold text-blue-600">เฉลย!</h2>
+          <div className="space-y-4 text-center">
+            <h2 className="text-2xl font-bold text-blue-600">เฉลย!</h2>
             
-            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+            <div className="bg-gray-50 p-3 rounded-lg space-y-3">
                {stageResult.choices.map(c => (
                  <div key={c.id} className={`p-3 rounded border ${c.isGood ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`}>
-                    <p className="font-bold">{c.text}</p>
-                    <p className="text-sm mt-1">{c.result}</p>
+                    <p className="font-bold text-sm md:text-base">{c.text}</p>
+                    <p className="text-xs md:text-sm mt-1">{c.result}</p>
                  </div>
                ))}
             </div>
@@ -1214,7 +1214,7 @@ function App() {
                 <div className="mb-6 bg-white p-4 rounded-xl shadow-lg border-2 border-yellow-300">
                   <h3 className="text-xl font-bold mb-2 text-gray-700">ชีวิตในวัยเกษียณของคุณ:</h3>
                   <h4 className={`text-2xl font-bold mb-4 ${me.money < 0 ? 'text-red-600' : 'text-blue-600'}`}>{endingTitle}</h4>
-                  <img src={getImageUrl(endingImg)} alt={endingTitle} className="w-full h-auto max-h-72 mx-auto rounded-lg object-contain" />
+                  <img src={getImageUrl(endingImg)} alt={endingTitle} className="w-full h-auto max-h-48 md:max-h-56 mx-auto rounded-lg object-contain" />
                 </div>
               );
             })()}
