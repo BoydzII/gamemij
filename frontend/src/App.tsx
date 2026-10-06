@@ -1013,7 +1013,7 @@ function App() {
             {!isHost && me && (
               <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg font-bold text-blue-800">
                 <span>{me.name}</span>
-                <div className="flex items-center gap-4"><span className="flex items-center gap-1 text-green-700"><Coins size={18}/> ฿{me.money.toLocaleString()}</span><span className="flex items-center gap-1 text-pink-500"><Smile size={18}/> {me.happiness !== undefined ? me.happiness : 50}/100</span></div>
+                <div className="flex items-center gap-4"><span className={`flex items-center gap-1 ${me.money < 0 ? 'text-red-600' : 'text-green-700'}`}><Coins size={18}/> ฿{me.money.toLocaleString()}</span><span className="flex items-center gap-1 text-pink-500"><Smile size={18}/> {me.happiness !== undefined ? me.happiness : 50}/100</span></div>
               </div>
             )}
 
@@ -1140,7 +1140,7 @@ function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-blue-100 p-4 rounded-lg text-lg font-bold text-blue-900 flex flex-col items-center shadow-inner">
                   <span>ยอดเงินปัจจุบัน</span>
-                  <span className="text-xl sm:text-2xl text-green-700 flex items-center gap-1 mt-2"><Coins size={24}/> ฿{me.money.toLocaleString()}</span>
+                  <span className={`text-xl sm:text-2xl flex items-center gap-1 mt-2 ${me.money < 0 ? 'text-red-600' : 'text-green-700'}`}><Coins size={24}/> ฿{me.money.toLocaleString()}</span>
                 </div>
                 <div className="bg-pink-100 p-4 rounded-lg text-lg font-bold text-pink-900 flex flex-col items-center shadow-inner">
                   <span>ระดับความสุข</span>
@@ -1180,7 +1180,14 @@ function App() {
               <h3 className="font-bold text-lg mb-4">ตารางคะแนนและบทสรุปชีวิต</h3>
               <ul className="space-y-4">
                 {[...(roomData?.players || [])].sort((a,b) => b.money - a.money).map((p, i) => {
-                  const hap = p.happiness !== undefined ? p.happiness : 50;
+                  let hap = p.happiness !== undefined ? p.happiness : 50;
+                  
+                  let debtPenalty = 0;
+                  if (p.money < 0) {
+                     debtPenalty = Math.floor(Math.abs(p.money) / 10000);
+                     hap = Math.max(0, hap - debtPenalty);
+                  }
+
                   let ending = { title: '⚖️ ใช้ชีวิตได้สมดุล', color: 'text-green-600' };
                   if (p.money >= 1000000 && hap >= 70) ending = { title: '🌟 เศรษฐีผู้เปี่ยมสุข', color: 'text-yellow-600' };
                   else if (p.money >= 1000000 && hap < 50) ending = { title: '💼 รวยแต่เครียด', color: 'text-blue-600' };
@@ -1197,8 +1204,12 @@ function App() {
                         <span className={`font-bold ${ending.color}`}>{ending.title}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="flex items-center gap-1 text-green-700"><Coins size={16}/> ฿{p.money.toLocaleString()}</span>
-                        <span className="flex items-center gap-1 text-pink-500"><Smile size={16}/> สุข {hap}/100</span>
+                        <span className={`flex items-center gap-1 ${p.money < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                          <Coins size={16}/> ฿{p.money.toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1 text-pink-500">
+                          <Smile size={16}/> สุข {hap}/100 {debtPenalty > 0 && <span className="text-red-500 text-xs">(หนี้ลดสุข -{debtPenalty})</span>}
+                        </span>
                       </div>
                     </li>
                   );
