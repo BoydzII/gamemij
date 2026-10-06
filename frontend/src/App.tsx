@@ -1025,15 +1025,22 @@ function App() {
               <p className="mt-4 text-lg bg-gray-100 p-4 rounded-lg border-l-4 border-red-500">{currentStage.description}</p>
             </div>
 
-            {/* แสดงภาพประกอบ ถ้ามี */}
-            {(currentStage?.imageUrl || stageImage) && (
-              <div className="mt-4 text-center bg-white p-2 rounded-lg shadow border">
-                <p className="text-sm text-gray-500 mb-2 font-bold flex items-center justify-center gap-1">
-                  <ShieldAlert size={16} /> ภาพประกอบจำลองสถานการณ์
-                </p>
-                <img src={currentStage?.imageUrl || stageImage} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
-              </div>
-            )}
+            {/* แสดงภาพประกอบ ถ้ามี หรือใช้ภาพอัตโนมัติ */}
+            {(() => {
+               let displayImg = stageImage || currentStage?.imageUrl;
+               if (!displayImg) {
+                  const hasScam = currentStage?.choices.some(c => !c.isGood);
+                  displayImg = hasScam ? 'img_scam_default.jpg' : 'img_good_default.jpg';
+               }
+               return displayImg ? (
+                  <div className="mt-4 text-center bg-white p-2 rounded-lg shadow border">
+                    <p className="text-sm text-gray-500 mb-2 font-bold flex items-center justify-center gap-1">
+                      <ShieldAlert size={16} /> ภาพประกอบจำลองสถานการณ์
+                    </p>
+                    <img src={displayImg} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
+                  </div>
+               ) : null;
+            })()}
 
             {(!isHost || isSinglePlayer) && (
               <div className="space-y-3 mt-6">
@@ -1173,6 +1180,30 @@ function App() {
         {/* --- Finished Screen --- */}
         {appState === 'finished' && (
           <div className="space-y-6 text-center">
+            
+            {me && (() => {
+              let hap = me.happiness !== undefined ? me.happiness : 50;
+              let debtPenalty = 0;
+              if (me.money < 0) {
+                 debtPenalty = Math.floor(Math.abs(me.money) / 10000);
+                 hap = Math.max(0, hap - debtPenalty);
+              }
+              let endingImg = 'end_balance.jpg';
+              let endingTitle = '⚖️ ใช้ชีวิตได้สมดุล';
+              if (me.money >= 1000000 && hap >= 70) { endingImg = 'end_rich_happy.jpg'; endingTitle = '🌟 เศรษฐีผู้เปี่ยมสุข'; }
+              else if (me.money >= 1000000 && hap < 50) { endingImg = 'end_rich_sad.jpg'; endingTitle = '💼 รวยแต่เครียด'; }
+              else if (me.money <= 200000 && hap >= 70) { endingImg = 'end_poor_happy.jpg'; endingTitle = '💖 เงินน้อยแต่สุขใจ'; }
+              else if (me.money <= 200000 && hap < 50) { endingImg = 'end_poor_sad.jpg'; endingTitle = '📉 ล้มละลายและอมทุกข์'; }
+
+              return (
+                <div className="mb-6 bg-white p-4 rounded-xl shadow-lg border-2 border-yellow-300">
+                  <h3 className="text-xl font-bold mb-2 text-gray-700">ชีวิตในวัยเกษียณของคุณ:</h3>
+                  <h4 className={`text-2xl font-bold mb-4 ${me.money < 0 ? 'text-red-600' : 'text-blue-600'}`}>{endingTitle}</h4>
+                  <img src={endingImg} alt={endingTitle} className="w-full h-auto max-h-72 mx-auto rounded-lg object-contain" />
+                </div>
+              );
+            })()}
+
             <Trophy size={64} className="mx-auto text-yellow-500" />
             <h2 className="text-3xl font-bold text-gray-800">จบเกม!</h2>
             
