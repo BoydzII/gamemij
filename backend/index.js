@@ -65,6 +65,7 @@ const allStages = [
   },
   {
     id: "scam_call",
+    imageUrl: "./scam_call.jpg",
     title: "สายเรียกเข้า: ตำรวจภูธร",
     description: "มีคนโทรมาอ้างว่าเป็นตำรวจ บอกว่าบัญชีคุณพัวพันคดีฟอกเงิน ต้องโอนเงินมาตรวจสอบความบริสุทธิ์",
     type: "scam",
@@ -76,6 +77,7 @@ const allStages = [
   },
   {
     id: "event_dividend",
+    imageUrl: "./event_dividend.jpg",
     title: "ข่าวดี: ปันผลหุ้น/กองทุน",
     description: "ถึงรอบเดือน เงินปันผลจากการลงทุนในอดีตของคุณออกแล้ว และโอนเข้าบัญชีโดยอัตโนมัติ",
     type: "good",
