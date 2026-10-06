@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode, Smile, Maximize, Minimize } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { Shield, ShieldAlert, Coins, Users, Trophy, Smile, Maximize, Minimize } from 'lucide-react';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
 import imgWealthy from './assets/role_wealthy.png';
@@ -1088,119 +1087,28 @@ function App() {
 
               <button 
                 onClick={startSinglePlayer}
-                className="w-full bg-indigo-500 text-white font-bold py-4 px-4 rounded-xl hover:bg-indigo-600 transition shadow-lg text-lg flex justify-center items-center gap-2 mt-6"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold py-4 px-4 rounded-2xl transition-all shadow-lg active:scale-[0.98] text-xl flex justify-center items-center gap-2 mt-6 cursor-pointer"
               >
-                🎮 เล่นคนเดียวทันที (Single Player)
+                🎮 เริ่มเล่นเกม
               </button>
-            </div>
 
-            <div className="relative flex py-6 items-center">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="flex-shrink-0 mx-4 text-sm font-bold text-gray-500">สำหรับคุณครู / ผู้ดูแลระบบ</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
-
-            <div className="space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
-              
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 className="font-bold text-blue-800 mb-3 text-center">เล่นแบบกลุ่ม (Multiplayer)</h3>
-                <div className="flex flex-col gap-2 mb-3">
+              {/* ตั้งค่าเสริม: นำเข้าโจทย์จาก Google Sheet (พับเก็บได้ ไม่รกหน้าจอ) */}
+              <details className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-600">
+                <summary className="font-bold text-gray-700 cursor-pointer select-none">
+                  ⚙️ ตั้งค่าเพิ่มเติม: ใช้ชุดโจทย์จาก Google Sheet (CSV)
+                </summary>
+                <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
                   <input 
                     type="text" 
-                    placeholder="รหัสห้อง (Room ID)" 
-                    className="w-full p-3 border rounded-lg uppercase"
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                    placeholder="วางลิงก์ CSV (ปล่อยว่างไว้เพื่อเล่นโจทย์มาตรฐาน)" 
+                    className="w-full p-2 border rounded-lg border-gray-300 text-xs bg-white"
+                    value={sheetUrl}
+                    onChange={(e) => setSheetUrl(e.target.value)}
                   />
-                  <button 
-                    onClick={joinRoom}
-                    className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition"
-                  >
-                    เข้าร่วมห้อง
-                  </button>
+                  <p className="text-[11px] text-gray-500">* หากไม่ต้องการเปลี่ยนโจทย์ สามารถปล่อยว่างไว้เพื่อเล่นตามปกติครับ</p>
                 </div>
-                
-                <div className="relative flex py-2 items-center mb-3">
-                  <div className="flex-grow border-t border-blue-200"></div>
-                  <span className="flex-shrink-0 mx-2 text-xs text-blue-400">หรือ</span>
-                  <div className="flex-grow border-t border-blue-200"></div>
-                </div>
-
-                <button 
-                  onClick={createRoom}
-                  className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
-                >
-                  สร้างห้องใหม่ (สำหรับโฮสต์)
-                </button>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <label className="font-bold block text-sm text-gray-700 flex items-center gap-1 mb-2">
-                  📊 ลิงก์ Google Sheet CSV (ชุดโจทย์กำหนดเอง):
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="วางลิงก์ CSV (ปล่อยว่างเพื่อใช้โจทย์เริ่มต้น)" 
-                  className="w-full p-2 border rounded-lg border-gray-300 text-sm mb-2"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                />
-                <p className="text-xs text-gray-500">* แอดมินสามารถนำรูปฝากเว็บแล้วเอาลิงก์ใส่ในชีตได้เลย</p>
-              </div>
-
+              </details>
             </div>
-
-            {/* QR Code สำหรับแชร์ */}
-            <div className="mt-8 flex flex-col items-center p-4 bg-white rounded-lg border-2 border-dashed border-gray-300">
-              <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-3 text-lg">
-                <QrCode size={24} /> สแกนคิวอาร์โค้ดเพื่อเข้าเล่น
-              </h3>
-              <div className="bg-white p-3 rounded-xl shadow-md border mb-2">
-                <QRCodeSVG value="https://BoydzII.github.io/gamemij/" size={160} />
-              </div>
-              <p className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">https://BoydzII.github.io/gamemij/</p>
-            </div>
-          </div>
-        )}
-
-        {/* --- Lobby Screen --- */}
-        {appState === 'lobby' && (
-          <div className="text-center space-y-6">
-            <div className="bg-yellow-100 p-4 rounded-lg border border-yellow-300">
-              <h2 className="text-xl font-bold text-yellow-800">รหัสห้อง: <span className="text-3xl tracking-widest">{roomId}</span></h2>
-            </div>
-            
-            <div className="text-left bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-bold flex items-center gap-2 mb-2"><Users size={20} /> ผู้เล่นรอในห้อง ({roomData?.players.length}/10)</h3>
-              <ul className="space-y-2">
-                {roomData?.players.map((p, i) => (
-                  <li key={i} className="flex justify-between items-center bg-white p-2 rounded border">
-                    <span>{p.name} ({p.role.name})</span>
-                    <span className="text-green-600 font-bold">฿{p.money.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {isHost ? (
-              <button 
-                onClick={startGame}
-                disabled={!roomData || roomData.players.length === 0}
-                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                เริ่มเกม!
-              </button>
-            ) : (
-              <p className="text-gray-500 animate-pulse">รอโฮสต์เริ่มเกม...</p>
-            )}
-
-            {/* เพิ่มด่านสำหรับโฮสต์ในล็อบบี้ */}
-            {(isHost || isSinglePlayer) && !showCustomForm && (
-              <button onClick={() => setShowCustomForm(true)} className="w-full mt-4 bg-indigo-100 text-indigo-700 font-bold py-3 px-4 rounded-lg border border-indigo-300 hover:bg-indigo-200">
-                ➕ แอดโจทย์/ด่านใหม่ด้วยตัวเอง
-              </button>
-            )}
-            {(isHost || isSinglePlayer) && showCustomForm && renderCustomForm()}
           </div>
         )}
 
