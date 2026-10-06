@@ -324,6 +324,7 @@ function App() {
         {appState === 'result' && stageResult && (
           <div className="space-y-6 text-center">
             <h2 className="text-3xl font-bold text-blue-600">เฉลย!</h2>
+            
             <div className="bg-gray-50 p-4 rounded-lg space-y-4">
                {stageResult.choices.map(c => (
                  <div key={c.id} className={`p-3 rounded border ${c.isGood ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'}`}>
@@ -333,8 +334,29 @@ function App() {
                ))}
             </div>
 
-            {!isHost && me && (
-              <div className="bg-blue-100 p-4 rounded-lg text-xl font-bold text-blue-900 flex justify-between items-center">
+            {/* คำชี้แจง / ความรู้ */}
+            {stageResult.explanation && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-left rounded-r-lg shadow-sm">
+                <h4 className="font-bold text-yellow-800 flex items-center gap-2 mb-1">
+                  <Shield size={18} /> ความรู้ป้องกันภัย
+                </h4>
+                <p className="text-sm text-yellow-900">{stageResult.explanation}</p>
+              </div>
+            )}
+
+            {/* แสดงโบนัสเงินเดือน ถ้ามี */}
+            {me && me.lastSalaryBonus > 0 && (
+              <div className="bg-green-100 border border-green-400 p-3 rounded-lg text-green-800 animate-bounce shadow-md">
+                <h3 className="font-bold text-lg flex items-center justify-center gap-2">
+                  <Coins size={24} /> 
+                  ถึงรอบรับเงินบำนาญ/ปันผล!
+                </h3>
+                <p>คุณได้รับเงินเข้าบัญชีเพิ่ม ฿{me.lastSalaryBonus.toLocaleString()}</p>
+              </div>
+            )}
+
+            {me && (
+              <div className="bg-blue-100 p-4 rounded-lg text-xl font-bold text-blue-900 flex justify-between items-center shadow-inner">
                 <span>ยอดเงินปัจจุบัน:</span>
                 <span>฿{me.money.toLocaleString()}</span>
               </div>
