@@ -661,10 +661,14 @@ io.on('connection', (socket) => {
           if (p.happiness > 100) p.happiness = 100;
           if (p.happiness < 0) p.happiness = 0;
 
-          if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
-             p.money += p.role.income;
-             earned += p.role.income;
-             p.lastSalaryBonus = p.role.income;
+          if (p.role.perRound !== 0) {
+             p.money += (p.role.perRound || 0);
+          }
+          if ((room.currentStageIndex + 1) % 3 === 0 && p.role.bonus > 0) {
+             p.money += p.role.bonus;
+             p.lastSalaryBonus = p.role.bonus;
+          } else {
+             p.lastSalaryBonus = 0;
           }
           // (Allow debt) if (p.money < 0) p.money = 0;
           

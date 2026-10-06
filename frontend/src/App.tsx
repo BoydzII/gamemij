@@ -13,9 +13,9 @@ import './App.css';
 const socket = io('http://localhost:3001');
 
 const roles = {
-  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม", img: imgWealthy },
-  pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน", img: imgPensioner },
-  salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน", img: imgSalary }
+  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, perRound: 100000, bonus: 0, description: "มีรายได้จากธุรกิจ 100,000 บาท ทุกด่าน", img: imgWealthy },
+  pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, perRound: -10000, bonus: 20000, description: "เสียค่าใช้จ่าย 10,000/ด่าน และรับบำนาญ 20,000 ทุกๆ 3 ด่าน", img: imgPensioner },
+  salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, perRound: 0, bonus: 50000, description: "รับเงินเดือน 50,000 บาท ทุกๆ 3 ด่าน", img: imgSalary }
 };
 
 // ด่านสำรองกรณีเล่นออฟไลน์
@@ -752,12 +752,18 @@ function App() {
            else p.scamsFallen = (p.scamsFallen || 0) + 1;
         }
 
-        if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
-           p.money += p.role.income;
-           earned += p.role.income;
-           p.lastSalaryBonus = p.role.income;
+        if (p.role.perRound !== 0) {
+           p.money += (p.role.perRound || 0);
         }
-        if (p.money < 0) p.money = 0;
+
+        if ((room.currentStageIndex + 1) % 3 === 0 && p.role.bonus > 0) {
+           p.money += p.role.bonus;
+           earned += p.role.bonus;
+           p.lastSalaryBonus = p.role.bonus;
+        } else {
+           p.lastSalaryBonus = 0;
+        }
+        // (Allow debt) if (p.money < 0) p.money = 0;
         
         p.history.push({
           stageIndex: room.currentStageIndex,
@@ -1190,14 +1196,23 @@ function App() {
               </div>
             )}
 
+            {/* แสดงรายได้/รายจ่ายประจำ */}
+            {me && me.role && me.role.perRound !== 0 && (
+              <div className={`p-3 rounded-lg font-bold shadow-sm flex items-center justify-center gap-2 ${me.role.perRound > 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {me.role.perRound > 0 ? <Coins size={20} /> : null}
+                {me.role.perRound > 0 ? 'รายได้ประจำรอบนี้: +฿' : 'ค่าใช้จ่ายประจำรอบนี้: -฿'}
+                {Math.abs(me.role.perRound).toLocaleString()}
+              </div>
+            )}
+
             {/* แสดงโบนัสเงินเดือน ถ้ามี */}
             {me && me.lastSalaryBonus > 0 && (
               <div className="bg-green-100 border border-green-400 p-3 rounded-lg text-green-800 animate-bounce shadow-md">
                 <h3 className="font-bold text-lg flex items-center justify-center gap-2">
                   <Coins size={24} /> 
-                  ถึงรอบรับเงินบำนาญ/ปันผล!
+                  โบนัส / เงินบำนาญออกแล้ว!
                 </h3>
-                <p>คุณได้รับเงินเข้าบัญชีเพิ่ม ฿{me.lastSalaryBonus.toLocaleString()}</p>
+                <p>คุณได้รับเงินเข้าบัญชี ฿{me.lastSalaryBonus.toLocaleString()}</p>
               </div>
             )}
 
