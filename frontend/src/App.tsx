@@ -839,14 +839,6 @@ function App() {
         {/* --- Home Screen --- */}
         {appState === 'home' && (
           <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <button 
-                onClick={createRoom}
-                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
-              >
-                สร้างห้อง (สำหรับครู/โฮสต์)
-              </button>
-            </div>
 
             <div className="space-y-4">
               <input 
@@ -897,48 +889,68 @@ function App() {
                 </div>
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-blue-200 mt-4 mb-2">
-                <label className="font-bold block text-sm text-indigo-600 flex items-center gap-1">
-                  📊 ลิงก์ Google Sheet CSV (สร้างโจทย์เอง):
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="วางลิงก์ CSV (ปล่อยว่างเพื่อใช้โจทย์เริ่มต้น)" 
-                  className="w-full p-3 border rounded-lg border-indigo-300 bg-indigo-50 text-sm"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                />
-                <p className="text-xs text-gray-500">แอดมินสามารถนำรูปฝากเว็บแล้วเอาลิงก์ใส่ในชีตได้เลย</p>
-              </div>
-
               <button 
                 onClick={startSinglePlayer}
-                className="w-full bg-indigo-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-600 transition shadow-md"
+                className="w-full bg-indigo-500 text-white font-bold py-4 px-4 rounded-xl hover:bg-indigo-600 transition shadow-lg text-lg flex justify-center items-center gap-2 mt-6"
               >
                 🎮 เล่นคนเดียวทันที (Single Player)
               </button>
             </div>
 
-            <div className="relative flex py-2 items-center">
+            <div className="relative flex py-6 items-center">
               <div className="flex-grow border-t border-gray-300"></div>
-              <span className="flex-shrink-0 mx-4 text-gray-400">หรือ เข้าร่วมเกมแบบกลุ่ม</span>
+              <span className="flex-shrink-0 mx-4 text-sm font-bold text-gray-500">สำหรับคุณครู / ผู้ดูแลระบบ</span>
               <div className="flex-grow border-t border-gray-300"></div>
             </div>
 
-            <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-              <input 
-                type="text" 
-                placeholder="รหัสห้อง 6 หลัก (กรณีเล่นแบบกลุ่ม)" 
-                className="w-full p-3 border rounded-lg uppercase"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-              />
-              <button 
-                onClick={joinRoom}
-                className="w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition"
-              >
-                เข้าร่วมเกม
-              </button>
+            <div className="space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
+              
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h3 className="font-bold text-blue-800 mb-3 text-center">เล่นแบบกลุ่ม (Multiplayer)</h3>
+                <div className="flex flex-col gap-2 mb-3">
+                  <input 
+                    type="text" 
+                    placeholder="รหัสห้อง (Room ID)" 
+                    className="w-full p-3 border rounded-lg uppercase"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                  />
+                  <button 
+                    onClick={joinRoom}
+                    className="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition"
+                  >
+                    เข้าร่วมห้อง
+                  </button>
+                </div>
+                
+                <div className="relative flex py-2 items-center mb-3">
+                  <div className="flex-grow border-t border-blue-200"></div>
+                  <span className="flex-shrink-0 mx-2 text-xs text-blue-400">หรือ</span>
+                  <div className="flex-grow border-t border-blue-200"></div>
+                </div>
+
+                <button 
+                  onClick={createRoom}
+                  className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+                >
+                  สร้างห้องใหม่ (สำหรับโฮสต์)
+                </button>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <label className="font-bold block text-sm text-gray-700 flex items-center gap-1 mb-2">
+                  📊 ลิงก์ Google Sheet CSV (ชุดโจทย์กำหนดเอง):
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="วางลิงก์ CSV (ปล่อยว่างเพื่อใช้โจทย์เริ่มต้น)" 
+                  className="w-full p-2 border rounded-lg border-gray-300 text-sm mb-2"
+                  value={sheetUrl}
+                  onChange={(e) => setSheetUrl(e.target.value)}
+                />
+                <p className="text-xs text-gray-500">* แอดมินสามารถนำรูปฝากเว็บแล้วเอาลิงก์ใส่ในชีตได้เลย</p>
+              </div>
+
             </div>
 
             {/* QR Code สำหรับแชร์ */}
