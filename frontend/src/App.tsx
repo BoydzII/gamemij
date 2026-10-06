@@ -1036,12 +1036,17 @@ function App() {
                   const hasScam = currentStage?.choices.some(c => !c.isGood);
                   displayImg = hasScam ? 'img_scam_default.jpg' : 'img_good_default.jpg';
                }
+               const getImageUrl = (url) => {
+                 if (!url) return '';
+                 if (url.startsWith('http') || url.startsWith('data:')) return url;
+                 return `${import.meta.env.BASE_URL}${url.replace('./', '')}`;
+               };
                return displayImg ? (
                   <div className="mt-4 text-center bg-white p-2 rounded-lg shadow border">
                     <p className="text-sm text-gray-500 mb-2 font-bold flex items-center justify-center gap-1">
                       <ShieldAlert size={16} /> ภาพประกอบจำลองสถานการณ์
                     </p>
-                    <img src={displayImg} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
+                    <img src={getImageUrl(displayImg)} alt="ภาพประกอบ" className="w-full h-auto max-h-[32rem] mx-auto rounded-lg object-contain" />
                   </div>
                ) : null;
             })()}
@@ -1199,11 +1204,17 @@ function App() {
               else if (me.money <= 200000 && hap >= 70) { endingImg = 'end_poor_happy.jpg'; endingTitle = '💖 เงินน้อยแต่สุขใจ'; }
               else if (me.money <= 200000 && hap < 50) { endingImg = 'end_poor_sad.jpg'; endingTitle = '📉 ล้มละลายและอมทุกข์'; }
 
+              const getImageUrl = (url) => {
+                 if (!url) return '';
+                 if (url.startsWith('http') || url.startsWith('data:')) return url;
+                 return `${import.meta.env.BASE_URL}${url.replace('./', '')}`;
+              };
+
               return (
                 <div className="mb-6 bg-white p-4 rounded-xl shadow-lg border-2 border-yellow-300">
                   <h3 className="text-xl font-bold mb-2 text-gray-700">ชีวิตในวัยเกษียณของคุณ:</h3>
                   <h4 className={`text-2xl font-bold mb-4 ${me.money < 0 ? 'text-red-600' : 'text-blue-600'}`}>{endingTitle}</h4>
-                  <img src={endingImg} alt={endingTitle} className="w-full h-auto max-h-72 mx-auto rounded-lg object-contain" />
+                  <img src={getImageUrl(endingImg)} alt={endingTitle} className="w-full h-auto max-h-72 mx-auto rounded-lg object-contain" />
                 </div>
               );
             })()}
