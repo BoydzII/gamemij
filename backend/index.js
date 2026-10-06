@@ -563,8 +563,59 @@ const allStages = [
       }
     ],
     "explanation": "ข้อคิด: เสียน้อยเสียยาก เสียมากเสียง่าย เรื่องความปลอดภัยในชีวิตและทรัพย์สิน คือสิ่งที่ไม่ควรประหยัดเด็ดขาด"
+  },
+  {
+    id: "event_teacher_coop_loan",
+    title: "เพื่อนครูชวนกู้ค้ำหนี้สหกรณ์",
+    description: "เพื่อนครูมาชวนให้กู้หนี้สหกรณ์ออมทรัพย์ ทั้งที่คุณไม่มีความจำเป็นต้องใช้เงิน โดยขอให้ช่วยค้ำประกันไขว้กัน 4 คน วงเงินคนละ 2,000,000 บาท",
+    type: "scam",
+    choices: [
+      {
+        id: "A",
+        text: "ไม่ค้ำประกัน และไม่กู้เด็ดขาด",
+        result: "เพื่อนโกรธและไม่ยอมคุยด้วย ทำให้ความสุขลดลง 5 หน่วย แต่เงินปลอดภัย 100% ไม่ต้องแบกรับหนี้แทนใคร",
+        moneyChange: 0,
+        happinessChange: -5,
+        isGood: true
+      },
+      {
+        id: "B",
+        text: "ยอมกู้และช่วยเซ็นค้ำประกันให้เพื่อน",
+        result: "ติดกับดักหนี้สหกรณ์! เพื่อนเบี้ยวหนี้และหนีหาย คุณต้องถูกหักเงินผ่อนหนี้แทนเดือนละ 20,000 บาท และทุกข์ใจทุกเดือน",
+        moneyChange: -20000,
+        happinessChange: -5,
+        perRoundMoney: -20000,
+        perRoundHap: -5,
+        isGood: false
+      }
+    ],
+    explanation: "ข้อควรระวัง: การค้ำประกันหนี้สหกรณ์แบบไขว้กัน เป็นกับดักหนี้ที่ทำให้ข้าราชการครูล้มละลายมาแล้วมากมาย หากผู้กู้หนี คนค้ำต้องชดใช้หนี้แทนทั้งหมดตามกฎหมาย"
+  },
+  {
+    id: "scam_fb_health_product",
+    title: "โฆษณาสินค้าเพื่อสุขภาพบน Facebook",
+    description: "เห็นโฆษณาขายสินค้าเพื่อสุขภาพและอาหารเสริมบำรุงข้อเข่าบน Facebook จัดโปรโมชันราคาถูกกว่าใน Shopee มากเป็นพิเศษ",
+    type: "scam",
+    choices: [
+      {
+        id: "A",
+        text: "โอนเงินซื้อสินค้าทันที เพราะราคาถูกมาก",
+        result: "โดนหลอก! เป็นเพจมิจฉาชีพสร้างปลอมขึ้นมา โอนเงินแล้วโดนบล็อกหนีทันที ไม่ได้รับสินค้าและเสียเงินฟรี",
+        moneyChange: -3000,
+        happinessChange: -15,
+        isGood: false
+      },
+      {
+        id: "B",
+        text: "ตรวจสอบก่อน: โอนเงินเฉพาะบัญชีบริษัท และนำลิงก์เพจไปให้ AI ตรวจสอบ",
+        result: "ฉลาดมาก! AI และระบบตรวจพบว่าเป็นเพจปลอมเปิดใหม่ บัญชีเป็นชื่อม้า คุณจึงรอดพ้นจากการถูกโกงและไม่เสียเงิน",
+        moneyChange: 0,
+        happinessChange: 5,
+        isGood: true
+      }
+    ],
+    explanation: "ข้อควรระวัง: มิจฉาชีพนิยมยิงแอดขายสินค้าเพื่อสุขภาพราคาถูกเกินจริง ก่อนซื้อควรตรวจสอบบัญชีรับเงินต้องเป็นชื่อบริษัท ไม่ใช่บุคคลธรรมดา และนำเพจไปตรวจสอบก่อน"
   }
-
 ];
 
 const rooms = {};
@@ -663,6 +714,22 @@ io.on('connection', (socket) => {
 
           if (p.role.perRound !== 0) {
              p.money += (p.role.perRound || 0);
+          }
+
+          // หักภาระหนี้ผูกพันสะสมจากเทิร์นก่อนๆ (ถ้ามี)
+          if (p.extraPerRoundMoney) {
+             p.money += p.extraPerRoundMoney;
+          }
+          if (p.extraPerRoundHap) {
+             p.happiness = Math.max(0, Math.min(100, p.happiness + p.extraPerRoundHap));
+          }
+
+          // บันทึกภาระผูกพันต่อเนื่องสำหรับรอบถัดๆ ไป
+          if (choice.perRoundMoney) {
+             p.extraPerRoundMoney = (p.extraPerRoundMoney || 0) + choice.perRoundMoney;
+          }
+          if (choice.perRoundHap) {
+             p.extraPerRoundHap = (p.extraPerRoundHap || 0) + choice.perRoundHap;
           }
           if ((room.currentStageIndex + 1) % 3 === 0 && p.role.bonus > 0) {
              p.money += p.role.bonus;
