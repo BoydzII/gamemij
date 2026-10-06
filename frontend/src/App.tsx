@@ -513,6 +513,7 @@ function App() {
   const [roomId, setRoomId] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [roleId, setRoleId] = useState('pensioner');
+  const [gameLength, setGameLength] = useState(6);
   const [isHost, setIsHost] = useState(false);
   const [isSinglePlayer, setIsSinglePlayer] = useState(false);
   const [isLocalMode, setIsLocalMode] = useState(false);
@@ -619,16 +620,16 @@ function App() {
   };
 
   const createRoom = () => {
-    socket.emit('createRoom', {}, (res) => {
+    socket.emit('createRoom', { gameLength }, (res) => {
       setRoomId(res.roomId);
       setIsHost(true);
       setAppState('lobby');
     });
   };
 
-  const fetchStagesFromSheet = async (url) => {
+  const fetchStagesFromSheet = async (url, length) => {
     if (!url) {
-      return [...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, 5);
+      return [...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, length);
     }
     return new Promise((resolve) => {
       Papa.parse(url, {
@@ -647,9 +648,9 @@ function App() {
             ],
             explanation: row.explanation
           }));
-          resolve(parsed.sort(() => 0.5 - Math.random()).slice(0, 8)); // Shuffle and take 8
+          resolve(parsed.sort(() => 0.5 - Math.random()).slice(0, length));
         },
-        error: () => resolve([...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, 8))
+        error: () => resolve([...fallbackStages].sort(() => 0.5 - Math.random()).slice(0, length))
       });
     });
   };
@@ -659,7 +660,7 @@ function App() {
     setPlayerName(finalName);
     
     // โหมดออฟไลน์ล้วน (Local Mode)
-    const stages = await fetchStagesFromSheet(sheetUrl);
+    const stages = await fetchStagesFromSheet(sheetUrl, gameLength);
     const role = roles[roleId] || roles.pensioner;
     
     const localRoom = {
@@ -876,7 +877,27 @@ function App() {
                 </div>
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-blue-200 mt-4 mb-2">
+              <div className="mt-4 pt-4 border-t border-blue-200">
+                <label className="font-bold block text-sm text-gray-600 mb-2">เลือกระยะเวลาการใช้ชีวิต:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { val: 6, label: "3 ปี", desc: "(6 เหตุการณ์)" },
+                    { val: 10, label: "5 ปี", desc: "(10 เหตุการณ์)" },
+                    { val: 14, label: "7 ปี", desc: "(14 เหตุการณ์)" }
+                  ].map(opt => (
+                    <div 
+                      key={opt.val}
+                      onClick={() => setGameLength(opt.val)}
+                      className={`cursor-pointer border-2 rounded-lg p-2 text-center transition ${gameLength === opt.val ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-500'}`}
+                    >
+                      <div className="font-bold">{opt.label}</div>
+                      <div className="text-xs">{opt.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-blue-200 mt-4 mb-2">
                 <label className="font-bold block text-sm text-indigo-600 flex items-center gap-1">
                   📊 ลิงก์ Google Sheet CSV (สร้างโจทย์เอง):
                 </label>

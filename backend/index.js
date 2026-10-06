@@ -580,7 +580,7 @@ io.on('connection', (socket) => {
       host: socket.id,
       players: [],
       state: 'lobby',
-      stages: getRandomStages(8), // เพิ่มเป็น 8 ด่านเพื่อให้เกมสนุกขึ้น
+      stages: getRandomStages(data.gameLength || 6), 
       currentStageIndex: -1,
       responses: {}
     };
