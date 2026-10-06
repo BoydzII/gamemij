@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode, Smile } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Papa from 'papaparse';
+import confetti from 'canvas-confetti';
 import imgWealthy from './assets/role_wealthy.png';
 import imgPensioner from './assets/role_pensioner.png';
 import imgSalary from './assets/role_salary.png';
@@ -530,6 +531,10 @@ function App() {
   const [stageResult, setStageResult] = useState(null);
   const [stageImage, setStageImage] = useState(null);
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [lifelineUsed, setLifelineUsed] = useState(false);
+  const [lifelineMessage, setLifelineMessage] = useState("");
+  const [shake, setShake] = useState(false);
+  const [flashRed, setFlashRed] = useState(false);
 
   useEffect(() => {
     socket.on('updateRoom', (room) => {
@@ -707,11 +712,17 @@ function App() {
   };
 
   const submitAnswer = (choiceId) => {
+    const stage = currentStage;
+    const choice = stage.choices.find(c => c.id === choiceId);
+    
+    if (stage.type === 'scam' && choice && !choice.isGood) {
+        setShake(true); setFlashRed(true);
+        setTimeout(() => { setShake(false); setFlashRed(false); }, 500);
+    }
+    
     if (isLocalMode) {
       const room = { ...roomData };
       const p = room.players[0];
-      const stage = room.stages[room.currentStageIndex];
-      const choice = stage.choices.find(c => c.id === choiceId);
       
       let earned = 0;
       let hapChange = 0;
@@ -735,6 +746,11 @@ function App() {
         p.happiness += hapChange;
         if (p.happiness > 100) p.happiness = 100;
         if (p.happiness < 0) p.happiness = 0;
+
+        if (stage.type === 'scam') {
+           if (choice.isGood) p.scamsDodged = (p.scamsDodged || 0) + 1;
+           else p.scamsFallen = (p.scamsFallen || 0) + 1;
+        }
 
         if ((room.currentStageIndex + 1) % 2 === 0 && p.role.income > 0) {
            p.money += p.role.income;
@@ -784,6 +800,23 @@ function App() {
 
   const me = isLocalMode ? roomData?.players[0] : roomData?.players.find(p => p.id === socket.id);
 
+
+  useEffect(() => {
+    if (appState === 'finished' && me) {
+      let hap = me.happiness !== undefined ? me.happiness : 50;
+      let debtPenalty = 0;
+      if (me.money < 0) {
+         debtPenalty = Math.floor(Math.abs(me.money) / 10000);
+         hap = Math.max(0, hap - debtPenalty);
+      }
+      if (me.money >= 1000000 && hap >= 70) {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      } else if (me.money <= 200000 && hap >= 70) {
+        confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      }
+    }
+  }, [appState, me]);
+
   const renderCustomForm = () => (
     <div className="mt-8 bg-indigo-50 p-6 rounded-lg border border-indigo-200 text-left">
       <h3 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
@@ -832,7 +865,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 sm:p-4">
-      <div className="max-w-md mx-auto bg-white sm:rounded-xl shadow-md overflow-hidden md:max-w-md p-4 sm:p-6 min-h-screen sm:min-h-0">
+      <div className={`max-w-md mx-auto bg-white sm:rounded-xl shadow-md overflow-hidden md:max-w-md p-4 sm:p-6 min-h-screen sm:min-h-0 ${shake ? "animate-shake" : ""} ${flashRed ? "flash-red" : ""}`}>
         
         {/* Header */}
         <div className="flex items-center justify-center gap-2 mb-4 text-blue-600">
@@ -1054,6 +1087,22 @@ function App() {
             {(!isHost || isSinglePlayer) && (
               <div className="space-y-2 mt-3">
                 <h3 className="font-bold text-sm md:text-base">คุณจะทำอย่างไร?</h3>
+                
+                {!hasAnswered && !lifelineUsed && (
+                  <button onClick={() => {
+                     setLifelineUsed(true);
+                     setLifelineMessage(currentStage.type === 'scam' ? '🚨 ลูกหลานบอกว่า: "ระวัง! รูปแบบนี้มิจฉาชีพชอบใช้มาก อย่าโอนเด็ดขาด!"' : '✅ ลูกหลานบอกว่า: "ดูน่าเชื่อถือนะ น่าจะเป็นเรื่องปกตินะคะ"');
+                  }} className="w-full text-left bg-yellow-100 border-2 border-yellow-400 text-yellow-800 p-2 md:p-3 rounded-lg hover:bg-yellow-200 transition text-sm md:text-base font-bold flex items-center gap-2">
+                    💡 โทรปรึกษาลูกหลาน (ใช้ได้ 1 ครั้ง/เกม)
+                  </button>
+                )}
+                
+                {lifelineMessage && (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded-r text-sm text-yellow-900 font-bold">
+                    {lifelineMessage}
+                  </div>
+                )}
+
                 {hasAnswered ? (
                   <div className="text-center p-4 bg-gray-100 rounded-lg text-gray-500 font-bold text-sm">
                     ส่งคำตอบแล้ว รอผู้เล่นคนอื่น...
@@ -1194,7 +1243,7 @@ function App() {
               let hap = me.happiness !== undefined ? me.happiness : 50;
               let debtPenalty = 0;
               if (me.money < 0) {
-                 debtPenalty = Math.floor(Math.abs(me.money) / 10000);
+                 debtPenalty = Math.floor(Math.Math.abs(me.money) / 10000);
                  hap = Math.max(0, hap - debtPenalty);
               }
               let endingImg = 'end_balance.jpg';
@@ -1215,6 +1264,15 @@ function App() {
                   <h3 className="text-xl font-bold mb-2 text-gray-700">ชีวิตในวัยเกษียณของคุณ:</h3>
                   <h4 className={`text-2xl font-bold mb-4 ${me.money < 0 ? 'text-red-600' : 'text-blue-600'}`}>{endingTitle}</h4>
                   <img src={getImageUrl(endingImg)} alt={endingTitle} className="w-full h-auto max-h-48 md:max-h-56 mx-auto rounded-lg object-contain" />
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                     <div className="bg-green-50 p-2 rounded border border-green-200 text-green-700 font-bold">
+                        รอดจากมิจฉาชีพ<br/><span className="text-2xl">{me.scamsDodged || 0}</span> ครั้ง
+                     </div>
+                     <div className="bg-red-50 p-2 rounded border border-red-200 text-red-700 font-bold">
+                        ตกเป็นเหยื่อ<br/><span className="text-2xl">{me.scamsFallen || 0}</span> ครั้ง
+                     </div>
+                  </div>
                 </div>
               );
             })()}

@@ -666,7 +666,7 @@ io.on('connection', (socket) => {
              earned += p.role.income;
              p.lastSalaryBonus = p.role.income;
           }
-          if (p.money < 0) p.money = 0;
+          // (Allow debt) if (p.money < 0) p.money = 0;
           
           p.history.push({
             stageIndex: room.currentStageIndex,
