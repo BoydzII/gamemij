@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { Shield, ShieldAlert, Coins, Users, Trophy } from 'lucide-react';
+import { Shield, ShieldAlert, Coins, Users, Trophy, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import Papa from 'papaparse';
+import rolesImage from './assets/roles.png';
 import './App.css';
 
 // เชื่อมต่อ Backend (สำหรับการเล่นแบบกลุ่ม)
 const socket = io('http://localhost:3001');
 
 const roles = {
-  pensioner: { id: "pensioner", name: "ข้าราชการบำนาญ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน" },
-  wealthy: { id: "wealthy", name: "เศรษฐีวัยเกษียณ", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม" },
-  salary: { id: "salary", name: "พนักงานใกล้เกษียณ", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน" }
+  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม", bgPos: "0% 0%" },
+  pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน", bgPos: "50% 0%" },
+  salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน", bgPos: "100% 0%" }
 };
 
 // ด่านสำรองกรณีเล่นออฟไลน์
@@ -394,23 +396,35 @@ function App() {
             <div className="space-y-4">
               <input 
                 type="text" 
-                placeholder="ชื่อผู้เล่น" 
+                placeholder="ชื่อผู้เล่น (ปล่อยว่างได้)" 
                 className="w-full p-3 border rounded-lg border-blue-300 bg-blue-50"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
               />
               
-              <div className="space-y-2">
-                <label className="font-bold block text-sm text-gray-600">เลือกบทบาท (เงินตั้งต้น):</label>
-                <select 
-                  className="w-full p-3 border rounded-lg border-blue-300 bg-blue-50"
-                  value={roleId}
-                  onChange={(e) => setRoleId(e.target.value)}
-                >
-                  <option value="pensioner">ข้าราชการบำนาญ (มีเงินบำนาญเรื่อยๆ)</option>
-                  <option value="wealthy">เศรษฐีวัยเกษียณ (เงินก้อนใหญ่มาก)</option>
-                  <option value="salary">พนักงานใกล้เกษียณ (เงินเดือนสูง)</option>
-                </select>
+              <div className="space-y-3">
+                <label className="font-bold block text-sm text-gray-600">เลือกตัวละคร (บทบาท):</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.values(roles).map(role => (
+                    <div 
+                      key={role.id}
+                      onClick={() => setRoleId(role.id)}
+                      className={`cursor-pointer border-4 rounded-xl overflow-hidden text-center transition ${roleId === role.id ? 'border-blue-500 shadow-md scale-105 bg-white' : 'border-transparent hover:border-gray-300 bg-gray-50 opacity-80'}`}
+                    >
+                      <div 
+                        className="w-full h-24 sm:h-32 bg-no-repeat"
+                        style={{
+                           backgroundImage: `url(${rolesImage})`,
+                           backgroundSize: '300% 100%',
+                           backgroundPosition: role.bgPos
+                        }}
+                      ></div>
+                      <div className={`text-xs font-bold py-1 ${roleId === role.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                        {role.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2 pt-2 border-t border-blue-200 mt-4 mb-2">
@@ -455,6 +469,17 @@ function App() {
               >
                 เข้าร่วมเกม
               </button>
+            </div>
+
+            {/* QR Code สำหรับแชร์ */}
+            <div className="mt-8 flex flex-col items-center p-4 bg-white rounded-lg border-2 border-dashed border-gray-300">
+              <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-3 text-lg">
+                <QrCode size={24} /> สแกนคิวอาร์โค้ดเพื่อเข้าเล่น
+              </h3>
+              <div className="bg-white p-3 rounded-xl shadow-md border mb-2">
+                <QRCodeSVG value="https://BoydzII.github.io/gamemij/" size={160} />
+              </div>
+              <p className="text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded-full">https://BoydzII.github.io/gamemij/</p>
             </div>
           </div>
         )}
