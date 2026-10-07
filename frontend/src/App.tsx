@@ -11,8 +11,8 @@ import './App.css';
 // เชื่อมต่อ Backend (สำหรับการเล่นแบบกลุ่ม)
 const socket = io('http://localhost:3001');
 
-const roles = {
-  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, perRound: 100000, bonus: 0, description: "มีรายได้จากธุรกิจ 100,000 บาท ทุกด่าน", img: imgWealthy },
+const roles: Record<string, any> = {
+  wealthy: { id: "wealthy", name: "คนรวย", startMoney: 2000000, perRound: 100000, bonus: 0, description: "มีรายได้จากธุรกิจ 100,000 บาท ทุกด่าน (⚠️ หากเล่นครบ 7 รอบ โรงงานจะน้ำท่วม ขาดทุน 3,000,000 บาท)", img: imgWealthy },
   pensioner: { id: "pensioner", name: "ข้าราชการเกษียณ", startMoney: 500000, perRound: -10000, bonus: 20000, description: "เสียค่าใช้จ่าย 10,000/ด่าน และรับบำนาญ 20,000 ทุกๆ 3 ด่าน", img: imgPensioner },
   salary: { id: "salary", name: "พนักงานระดับสูง", startMoney: 800000, perRound: 0, bonus: 50000, description: "รับเงินเดือน 50,000 บาท ทุกๆ 3 ด่าน", img: imgSalary }
 };
@@ -567,8 +567,8 @@ function App() {
   const [appState, setAppState] = useState('splash');
   const [roomId, setRoomId] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [roleId, setRoleId] = useState('pensioner');
-  const [gameLength, setGameLength] = useState(6);
+  const [roleId, setRoleId] = useState('wealthy');
+  const [gameLength, setGameLength] = useState(7);
   const [isHost, setIsHost] = useState(false);
   const [isSinglePlayer, setIsSinglePlayer] = useState(false);
   const [isLocalMode, setIsLocalMode] = useState(false);
@@ -792,8 +792,15 @@ function App() {
     const choice = stage?.choices.find(c => c.id === choiceId);
     if (!choice) return;
 
+    const currentMe = isLocalMode ? roomData?.players[0] : roomData?.players?.find(p => p.id === socket.id);
+    const isWealthyFlood = (currentMe?.role?.id === 'wealthy' || roleId === 'wealthy') && (stageIndex + 1 === 7);
+
     // เอฟเฟกต์ตัวเลขเงินลอยกลางจอ ขยายขึ้นแล้วค่อยๆ หายไป
-    const amt = choice.moneyChange || 0;
+    let amt = choice.moneyChange || 0;
+    if (isWealthyFlood) {
+      amt -= 3000000;
+    }
+
     let text = "";
     let colorClass = "";
     if (amt > 0) {
@@ -811,9 +818,9 @@ function App() {
       setFloatingMoney(null);
     }, 1500);
     
-    if (stage.type === 'scam' && !choice.isGood) {
+    if ((stage.type === 'scam' && !choice.isGood) || isWealthyFlood) {
         setShake(true); setFlashRed(true);
-        setTimeout(() => { setShake(false); setFlashRed(false); }, 500);
+        setTimeout(() => { setShake(false); setFlashRed(false); }, 600);
     }
     
     if (isLocalMode) {
@@ -852,6 +859,16 @@ function App() {
            p.money += (p.role.perRound || 0);
         }
 
+        // เงื่อนไข คนรวย เล่นเกมครบ 7 รอบ จะโรงงานน้ำท่วมขาดทุน 3 ล้านบาท (บังคับ)
+        if (p.role.id === 'wealthy' && (room.currentStageIndex + 1) === 7 && !p.factoryFlooded) {
+           p.money -= 3000000;
+           p.happiness = Math.max(0, (p.happiness !== undefined ? p.happiness : 50) - 30);
+           p.factoryFlooded = true;
+           p.floodLoss = 3000000;
+           earned -= 3000000;
+           hapChange -= 30;
+        }
+
         // หักภาระหนี้ผูกพันสะสมจากเทิร์นก่อนๆ (ถ้ามี เช่น ค้ำประกันหนี้สหกรณ์)
         if (p.extraPerRoundMoney) {
            p.money += p.extraPerRoundMoney;
@@ -880,7 +897,7 @@ function App() {
         p.history.push({
           stageIndex: room.currentStageIndex,
           choiceText: choice.text,
-          resultText: choice.result,
+          resultText: choice.result + (isWealthyFlood ? "\n\n🌊 [วิกฤตคนรวยเล่นครบ 7 รอบ] โรงงานน้ำท่วมใหญ่ ขาดทุน 3,000,000 บาท (บังคับ)" : ""),
           moneyChange: earned,
           happinessChange: hapChange
         });
@@ -1169,23 +1186,39 @@ function App() {
                     </div>
                   ))}
                 </div>
+
+                {/* กล่องแสดงเงื่อนไขและรายละเอียดของบทบาทที่เลือก */}
+                {roles[roleId] && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs sm:text-sm text-blue-900 mt-2 shadow-sm">
+                    <div className="font-bold flex items-center justify-between text-blue-800 mb-1">
+                      <span>👑 ข้อมูลตัวละคร: {roles[roleId].name}</span>
+                      <span className="text-emerald-700 font-extrabold bg-emerald-100 px-2 py-0.5 rounded-full text-xs">
+                        เงินเริ่ม: ฿{roles[roleId].startMoney.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed">
+                      {roles[roleId].description}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-blue-200">
                 <label className="font-bold block text-sm text-gray-600 mb-2">เลือกระยะเวลาการใช้ชีวิต:</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { val: 6, label: "3 ปี", desc: "(6 เหตุการณ์)" },
-                    { val: 10, label: "5 ปี", desc: "(10 เหตุการณ์)" },
-                    { val: 14, label: "7 ปี", desc: "(14 เหตุการณ์)" }
+                    { val: 6, label: "6 รอบ", desc: "(3 ปี)" },
+                    { val: 7, label: "7 รอบ", desc: "(3.5 ปี)" },
+                    { val: 10, label: "10 รอบ", desc: "(5 ปี)" },
+                    { val: 14, label: "14 รอบ", desc: "(7 ปี)" }
                   ].map(opt => (
                     <div 
                       key={opt.val}
                       onClick={() => setGameLength(opt.val)}
                       className={`cursor-pointer border-2 rounded-lg p-2 text-center transition ${gameLength === opt.val ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-500'}`}
                     >
-                      <div className="font-bold">{opt.label}</div>
-                      <div className="text-xs">{opt.desc}</div>
+                      <div className="font-bold text-sm sm:text-base">{opt.label}</div>
+                      <div className="text-[11px] sm:text-xs">{opt.desc}</div>
                     </div>
                   ))}
                 </div>
@@ -1396,6 +1429,22 @@ function App() {
               </div>
             )}
 
+            {/* แสดงการแจ้งเตือนวิกฤตโรงงานน้ำท่วมเมื่อคนรวยเล่นครบ 7 รอบ (บังคับ) */}
+            {me && me.factoryFlooded && (stageIndex + 1 === 7) && (
+              <div className="bg-gradient-to-r from-red-600 to-rose-700 text-white p-4 rounded-2xl shadow-xl border-2 border-red-300 text-left space-y-2">
+                <div className="flex items-center gap-2 text-yellow-300 font-extrabold text-lg">
+                  <span className="text-2xl animate-pulse">🌊🏭</span> วิกฤตโรงงานน้ำท่วม! (เหตุการณ์บังคับ)
+                </div>
+                <p className="text-sm font-semibold text-rose-50 leading-relaxed">
+                  คุณเล่นเกมครบ 7 รอบแล้ว! ได้เกิดมหาอุทกภัยน้ำท่วมใหญ่ทะลักเข้าเขตนิคมอุตสาหกรรม โรงงานของคุณจมน้ำ เครื่องจักรและสินค้าในสต็อกเสียหายทั้งหมด ขาดทุนย่อยยับ 3,000,000 บาท!
+                </p>
+                <div className="bg-black/30 p-2.5 rounded-xl flex justify-between items-center font-extrabold text-sm sm:text-base">
+                  <span className="text-red-200">ผลกระทบจากภัยพิบัติ:</span>
+                  <span className="text-yellow-300 font-black text-lg">-฿3,000,000 (ความสุข -30)</span>
+                </div>
+              </div>
+            )}
+
             {me && renderStatusBar()}
 
             {isHost || isSinglePlayer ? (
@@ -1457,6 +1506,12 @@ function App() {
                         ตกเป็นเหยื่อ<br/><span className="text-2xl">{me.scamsFallen || 0}</span> ครั้ง
                      </div>
                   </div>
+
+                  {me.factoryFlooded && (
+                    <div className="mt-3 bg-red-50 border border-red-300 p-2.5 rounded-lg text-red-800 text-xs sm:text-sm font-bold flex items-center justify-center gap-2">
+                      <span>🌊 ประสบภัยพิบัติโรงงานน้ำท่วม (เล่นครบ 7 รอบ): ขาดทุน ฿3,000,000</span>
+                    </div>
+                  )}
                 </div>
               );
             })()}

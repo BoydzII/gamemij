@@ -47,7 +47,7 @@ const io = new Server(server, {
 
 const roles = {
   pensioner: { id: "pensioner", name: "ข้าราชการบำนาญ", startMoney: 500000, income: 20000, description: "มีเงินบำนาญเข้ามา 20,000 บาท ทุกๆ 2 ด่าน" },
-  wealthy: { id: "wealthy", name: "เศรษฐีวัยเกษียณ", startMoney: 2000000, income: 0, description: "เงินก้อนใหญ่ แต่ไม่มีรายได้เพิ่ม" },
+  wealthy: { id: "wealthy", name: "เศรษฐีวัยเกษียณ", startMoney: 2000000, income: 100000, description: "มีรายได้จากธุรกิจ 100,000 บาท ทุกด่าน (หากเล่นครบ 7 รอบ โรงงานน้ำท่วมขาดทุน 3 ล้านบาท)" },
   salary: { id: "salary", name: "พนักงานใกล้เกษียณ", startMoney: 800000, income: 50000, description: "ได้เงินเดือน 50,000 บาท ทุกๆ 2 ด่าน" }
 };
 
@@ -731,6 +731,16 @@ io.on('connection', (socket) => {
           if (choice.perRoundHap) {
              p.extraPerRoundHap = (p.extraPerRoundHap || 0) + choice.perRoundHap;
           }
+          // เงื่อนไข คนรวย เล่นเกมครบ 7 รอบ จะโรงงานน้ำท่วมขาดทุน 3 ล้านบาท (บังคับ)
+          if (p.role.id === 'wealthy' && (room.currentStageIndex + 1) === 7 && !p.factoryFlooded) {
+             p.money -= 3000000;
+             p.happiness = Math.max(0, (p.happiness !== undefined ? p.happiness : 50) - 30);
+             p.factoryFlooded = true;
+             p.floodLoss = 3000000;
+             earned -= 3000000;
+             hapChange -= 30;
+          }
+
           if ((room.currentStageIndex + 1) % 3 === 0 && p.role.bonus > 0) {
              p.money += p.role.bonus;
              p.lastSalaryBonus = p.role.bonus;
@@ -742,7 +752,7 @@ io.on('connection', (socket) => {
           p.history.push({
             stageIndex: room.currentStageIndex,
             choiceText: choice.text,
-            resultText: choice.result,
+            resultText: choice.result + (p.role.id === 'wealthy' && (room.currentStageIndex + 1) === 7 ? " | 🌊 [วิกฤตคนรวยเล่นครบ 7 รอบ] โรงงานน้ำท่วมใหญ่ ขาดทุน 3,000,000 บาท (บังคับ)" : ""),
             moneyChange: earned,
             happinessChange: hapChange
           });
